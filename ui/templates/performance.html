@@ -4,48 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AlgoTrader — Performance</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/styling.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-  :root{--bg:#0b0f1a;--surface:#111827;--surface2:#1a2332;--border:#1f2937;--accent:#22d3a5;--accent2:#3b82f6;--danger:#f43f5e;--text:#f1f5f9;--muted:#64748b;--mono:'DM Mono',monospace;--sans:'Syne',sans-serif;}
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-  body{background:var(--bg);color:var(--text);font-family:var(--sans);display:flex;min-height:100vh;}
-  .sidebar{width:240px;min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:1.5rem 1rem;position:fixed;top:0;left:0;z-index:100;}
-  .sidebar-logo{display:flex;align-items:center;gap:0.6rem;padding:0.5rem 0.5rem 1.5rem;border-bottom:1px solid var(--border);margin-bottom:1.5rem;}
-  .logo-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
-  .logo-name{font-size:1.1rem;font-weight:800;letter-spacing:-0.02em;}
-  .logo-ver{font-size:0.65rem;color:var(--muted);font-family:var(--mono);}
-  .nav-label{font-size:0.65rem;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;padding:0 0.5rem;margin-bottom:0.5rem;}
-  .nav-link{display:flex;align-items:center;gap:0.75rem;padding:0.65rem 0.75rem;border-radius:8px;color:var(--muted);text-decoration:none;font-size:0.875rem;font-weight:600;transition:all 0.15s;margin-bottom:0.2rem;}
-  .nav-link:hover{background:var(--surface2);color:var(--text);}
-  .nav-link.active{background:rgba(34,211,165,0.1);color:var(--accent);border:1px solid rgba(34,211,165,0.15);}
-  .nav-icon{font-size:1rem;width:20px;text-align:center;}
-  .sidebar-bottom{margin-top:auto;border-top:1px solid var(--border);padding-top:1rem;}
-  .connection-badge{display:flex;align-items:center;gap:0.5rem;padding:0.6rem 0.75rem;border-radius:8px;background:var(--surface2);font-size:0.75rem;font-family:var(--mono);margin-bottom:0.75rem;}
-  .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite;flex-shrink:0;}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-  .btn-disconnect{width:100%;padding:0.6rem;background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.2);color:#fda4af;border-radius:8px;font-family:var(--sans);font-size:0.8rem;font-weight:600;cursor:pointer;}
-  .main{margin-left:240px;flex:1;padding:2rem;}
-  .page-title{font-size:1.8rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:0.25rem;}
-  .page-sub{color:var(--muted);font-family:var(--mono);font-size:0.8rem;margin-bottom:2rem;}
-  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem;}
-  .stat-tile{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.2rem 1.4rem;position:relative;overflow:hidden;}
-  .stat-tile::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),transparent);}
-  .stat-label{font-size:0.68rem;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem;}
-  .stat-value{font-size:1.5rem;font-weight:800;letter-spacing:-0.02em;}
-  .stat-delta{font-size:0.7rem;font-family:var(--mono);color:var(--muted);margin-top:0.3rem;}
-  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.5rem;}
-  .card-title{font-size:0.72rem;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:1rem;}
-  canvas{max-height:260px;}
-  .positive{color:var(--accent);}
-  .negative{color:#fda4af;}
-  .strategy-row{display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid rgba(31,41,55,0.5);font-family:var(--mono);font-size:0.78rem;}
-  .strategy-row:last-child{border-bottom:none;}
-  .conf-bar-bg{height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-top:0.2rem;}
-  .conf-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;}
-  .empty{color:var(--muted);font-family:var(--mono);font-size:0.85rem;padding:2rem;text-align:center;}
+  body { display:flex; min-height:100vh; }
+  .main { margin-left:220px; flex:1; padding:1.75rem 2rem; }
+  .strat-row { display:flex; align-items:flex-start; justify-content:space-between; padding:0.55rem 0; border-bottom:1px solid rgba(30,42,58,0.6); }
+  .strat-row:last-child { border-bottom:none; }
+  .strat-name { font-family:var(--mono); font-size:0.78rem; color:var(--text-dim); }
+  .strat-reason { font-size:0.72rem; color:var(--muted); margin-top:0.15rem; line-height:1.4; }
+  .strat-pct { font-family:var(--mono); font-size:0.8rem; color:var(--accent); font-weight:500; flex-shrink:0; margin-left:1rem; }
+  .metric-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:0.75rem; }
+  .metric-tile { border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.875rem 1rem; }
+  .metric-key { font-size:0.7rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.3rem; }
+  .metric-val { font-size:1.1rem; font-weight:700; font-family:var(--mono); color:var(--text); }
 </style>
 </head>
 <body>
@@ -54,7 +26,7 @@
     <div class="logo-icon">⚡</div>
     <div><div class="logo-name">AlgoTrader</div><div class="logo-ver">v2.0 · 40 Strategies</div></div>
   </div>
-  <div class="nav-label">Navigation</div>
+  <div class="nav-section-label">Navigation</div>
   <a href="/dashboard"   class="nav-link"><span class="nav-icon">📊</span> Dashboard</a>
   <a href="/history"     class="nav-link"><span class="nav-icon">📜</span> Trade History</a>
   <a href="/performance" class="nav-link active"><span class="nav-icon">📈</span> Performance</a>
@@ -67,56 +39,35 @@
 
 <main class="main">
   <div class="page-title">Performance Analytics</div>
-  <div class="page-sub">// Session metrics · strategy breakdown · signal analysis</div>
+  <div class="page-sub">Session metrics · strategy breakdown · signal analysis</div>
 
   <div class="stats-grid">
-    <div class="stat-tile">
-      <div class="stat-label">Session P&L</div>
-      <div class="stat-value" id="sessionPnl">$0.00</div>
-      <div class="stat-delta">unrealised</div>
-    </div>
-    <div class="stat-tile">
-      <div class="stat-label">Open Positions</div>
-      <div class="stat-value" id="openCount">0</div>
-      <div class="stat-delta">active trades</div>
-    </div>
-    <div class="stat-tile">
-      <div class="stat-label">Buy / Sell Split</div>
-      <div class="stat-value" id="buySellSplit">—</div>
-      <div class="stat-delta">buy / sell</div>
-    </div>
-    <div class="stat-tile">
-      <div class="stat-label">Strategies Evaluated</div>
-      <div class="stat-value" id="strategiesEval">40</div>
-      <div class="stat-delta">per signal check</div>
-    </div>
+    <div class="stat-tile"><div class="stat-label">Session P&L</div><div class="stat-value" id="sessionPnl">$0.00</div><div class="stat-delta">unrealised</div></div>
+    <div class="stat-tile"><div class="stat-label">Open Positions</div><div class="stat-value" id="openCount">0</div><div class="stat-delta">active trades</div></div>
+    <div class="stat-tile"><div class="stat-label">Buy / Sell</div><div class="stat-value" id="buySellSplit">0 / 0</div><div class="stat-delta">this session</div></div>
+    <div class="stat-tile"><div class="stat-label">Strategies</div><div class="stat-value" id="strategiesEval">40</div><div class="stat-delta">evaluated per signal</div></div>
   </div>
 
   <div class="grid-2">
-    <!-- Signal distribution chart -->
     <div class="card">
-      <div class="card-title">Signal Distribution — Last Analysis</div>
+      <div class="card-title">Signal Vote Distribution</div>
       <canvas id="signalChart"></canvas>
-      <div id="signalBreakdown" style="margin-top:1rem;font-family:var(--mono);font-size:0.78rem;color:var(--muted);"></div>
+      <div id="signalSummary" style="margin-top:0.875rem;font-family:var(--mono);font-size:0.78rem;color:var(--muted);line-height:1.6;"></div>
     </div>
-
-    <!-- Position P&L chart -->
     <div class="card">
-      <div class="card-title">Position Profit / Loss</div>
+      <div class="card-title">Position P&L</div>
       <canvas id="pnlChart"></canvas>
     </div>
   </div>
 
-  <!-- Strategy engine breakdown -->
-  <div class="card" style="margin-bottom:1.5rem;">
-    <div class="card-title">Live Strategy Signal — EURUSD</div>
+  <div class="card" style="margin-bottom:1.25rem;">
+    <div class="card-title">Top Strategy Signals — EURUSD</div>
     <div id="strategyBreakdown"><div class="empty">Loading strategy analysis...</div></div>
   </div>
 
-  <!-- Account metrics -->
   <div class="card">
     <div class="card-title">Account Metrics</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;" id="accountMetrics">
+    <div class="metric-grid" id="accountMetrics">
       <div class="empty">Loading...</div>
     </div>
   </div>
@@ -124,115 +75,83 @@
 
 <script>
 const API = 'http://localhost:8000';
-let signalChart = null;
-let pnlChart    = null;
+let signalChart = null, pnlChart = null;
 
 async function loadPerformance() {
   try {
-    // Load positions
     const posRes  = await fetch(`${API}/api/positions`);
     const posData = await posRes.json();
     const positions = posData.positions || [];
+    const totalPnl  = positions.reduce((s,p) => s+(p.profit||0), 0);
+    const buys  = positions.filter(p => p.type===0).length;
+    const sells = positions.filter(p => p.type===1).length;
 
-    const totalPnl  = positions.reduce((s, p) => s + (p.profit || 0), 0);
-    const buys      = positions.filter(p => p.type === 0).length;
-    const sells     = positions.filter(p => p.type === 1).length;
-
-    document.getElementById('sessionPnl').textContent  = (totalPnl >= 0 ? '+$' : '-$') + Math.abs(totalPnl).toFixed(2);
-    document.getElementById('sessionPnl').className    = 'stat-value ' + (totalPnl >= 0 ? 'positive' : 'negative');
+    const pnlEl = document.getElementById('sessionPnl');
+    pnlEl.textContent  = (totalPnl>=0?'+$':'-$') + Math.abs(totalPnl).toFixed(2);
+    pnlEl.className    = 'stat-value ' + (totalPnl>=0?'positive':'negative');
     document.getElementById('openCount').textContent   = positions.length;
     document.getElementById('buySellSplit').textContent = buys + ' / ' + sells;
 
-    // P&L bar chart
+    // P&L chart
+    if (pnlChart) pnlChart.destroy();
     if (positions.length > 0) {
-      const labels = positions.map(p => `#${p.ticket}`);
-      const profits = positions.map(p => p.profit || 0);
-      const colors  = profits.map(v => v >= 0 ? 'rgba(34,211,165,0.7)' : 'rgba(244,63,94,0.7)');
-
-      if (pnlChart) pnlChart.destroy();
       pnlChart = new Chart(document.getElementById('pnlChart'), {
         type: 'bar',
         data: {
-          labels,
-          datasets: [{ label: 'Profit', data: profits, backgroundColor: colors, borderRadius: 4 }]
+          labels: positions.map(p => `#${p.ticket}`),
+          datasets: [{ data: positions.map(p => p.profit||0), backgroundColor: positions.map(p => (p.profit||0)>=0?'rgba(34,211,165,0.6)':'rgba(244,63,94,0.6)'), borderRadius:4 }]
         },
-        options: {
-          responsive: true,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { ticks: { color: '#64748b', font: { family: 'DM Mono', size: 10 } }, grid: { color: 'rgba(31,41,55,0.6)' } },
-            y: { ticks: { color: '#64748b', font: { family: 'DM Mono', size: 10 } }, grid: { color: 'rgba(31,41,55,0.6)' } }
-          }
-        }
+        options: { responsive:true, plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#64748b',font:{family:'JetBrains Mono',size:10}},grid:{color:'rgba(30,42,58,0.7)'}}, y:{ticks:{color:'#64748b',font:{family:'JetBrains Mono',size:10}},grid:{color:'rgba(30,42,58,0.7)'}} } }
       });
     } else {
-      document.getElementById('pnlChart').parentElement.innerHTML =
-        '<div class="card-title">Position Profit / Loss</div><div class="empty">No open positions yet. Place trades from the Dashboard.</div>';
+      document.getElementById('pnlChart').parentElement.innerHTML = '<div class="card-title">Position P&L</div><div class="empty">Place trades from the Dashboard to see P&L here.</div>';
     }
 
-    // Load signal analysis
+    // Signal analysis
     const sigRes  = await fetch(`${API}/api/signal/EURUSD`);
     const sigData = await sigRes.json();
-
     document.getElementById('strategiesEval').textContent = sigData.total_evaluated || 40;
 
-    // Signal donut chart
     if (signalChart) signalChart.destroy();
     signalChart = new Chart(document.getElementById('signalChart'), {
       type: 'doughnut',
       data: {
         labels: ['Buy', 'Sell', 'Hold'],
-        datasets: [{
-          data: [sigData.buy_votes, sigData.sell_votes, sigData.none_votes],
-          backgroundColor: ['rgba(34,211,165,0.7)', 'rgba(244,63,94,0.7)', 'rgba(100,116,139,0.4)'],
-          borderColor: ['#22d3a5', '#f43f5e', '#64748b'],
-          borderWidth: 1
-        }]
+        datasets: [{ data: [sigData.buy_votes, sigData.sell_votes, sigData.none_votes], backgroundColor:['rgba(34,211,165,0.65)','rgba(244,63,94,0.65)','rgba(100,116,139,0.35)'], borderColor:['#22d3a5','#f43f5e','#475569'], borderWidth:1 }]
       },
-      options: {
-        responsive: true,
-        cutout: '65%',
-        plugins: {
-          legend: { labels: { color: '#64748b', font: { family: 'DM Mono', size: 11 } } }
-        }
-      }
+      options: { responsive:true, cutout:'62%', plugins:{ legend:{ labels:{ color:'#94a3b8', font:{family:'JetBrains Mono',size:11} } } } }
     });
 
-    document.getElementById('signalBreakdown').innerHTML =
-      `Final: <strong style="color:${sigData.final_signal==='BUY'?'var(--accent)':sigData.final_signal==='SELL'?'#fda4af':'var(--muted)'}">${sigData.final_signal}</strong>
-       &nbsp;·&nbsp; Confidence: <strong>${sigData.confidence}%</strong>
-       &nbsp;·&nbsp; ${sigData.total_evaluated} strategies evaluated`;
+    const finalColor = sigData.final_signal==='BUY'?'var(--accent)':sigData.final_signal==='SELL'?'#fca5a5':'var(--muted)';
+    document.getElementById('signalSummary').innerHTML =
+      `Final signal: <strong style="color:${finalColor}">${sigData.final_signal}</strong> &nbsp;·&nbsp; Confidence: <strong>${sigData.confidence}%</strong> &nbsp;·&nbsp; ${sigData.total_evaluated} strategies evaluated`;
 
-    // Top strategies breakdown
+    // Top strategies
     const topEl = document.getElementById('strategyBreakdown');
     if (sigData.top_strategies && sigData.top_strategies.length > 0) {
       topEl.innerHTML = sigData.top_strategies.map(s => `
-        <div class="strategy-row">
-          <div>
-            <div style="color:var(--text);">${s.name}</div>
-            <div style="color:var(--muted);font-size:0.72rem;margin-top:0.1rem;">${s.reason}</div>
-            <div class="conf-bar-bg" style="width:200px;"><div class="conf-bar" style="width:${s.confidence}%;"></div></div>
-          </div>
-          <div style="color:var(--accent);font-size:0.9rem;font-weight:600;">${s.confidence}%</div>
+        <div class="strat-row">
+          <div><div class="strat-name">${s.name}</div><div class="strat-reason">${s.reason}</div></div>
+          <div class="strat-pct">${s.confidence}%</div>
         </div>`).join('');
     } else {
-      topEl.innerHTML = '<div class="empty">No strong strategy signals — market may be ranging</div>';
+      topEl.innerHTML = '<div class="empty">No strong signals — market may be ranging</div>';
     }
 
-    // Account metrics
+    // Account
     const accRes  = await fetch(`${API}/api/account`);
-    const accData = await accRes.json();
+    const a       = await accRes.json();
     document.getElementById('accountMetrics').innerHTML = [
-      ['Balance',     '$' + Number(accData.balance).toFixed(2)],
-      ['Equity',      '$' + Number(accData.equity).toFixed(2)],
-      ['Free Margin', '$' + Number(accData.free_margin).toFixed(2)],
-      ['Margin Used', '$' + Number(accData.margin).toFixed(2)],
-      ['Profit',      (accData.profit >= 0 ? '+$' : '-$') + Math.abs(accData.profit).toFixed(2)],
-      ['Currency',    accData.currency || 'USD'],
-    ].map(([label, val]) => `
-      <div style="border:1px solid var(--border);border-radius:8px;padding:1rem;">
-        <div style="font-size:0.68rem;font-family:var(--mono);color:var(--muted);text-transform:uppercase;margin-bottom:0.4rem;">${label}</div>
-        <div style="font-size:1.2rem;font-weight:700;">${val}</div>
+      ['Balance',     '$' + Number(a.balance).toFixed(2)],
+      ['Equity',      '$' + Number(a.equity).toFixed(2)],
+      ['Free Margin', '$' + Number(a.free_margin).toFixed(2)],
+      ['Margin Used', '$' + Number(a.margin).toFixed(2)],
+      ['Float P&L',   (a.profit>=0?'+$':'-$') + Math.abs(a.profit).toFixed(2)],
+      ['Currency',    a.currency||'USD'],
+    ].map(([k,v]) => `
+      <div class="metric-tile">
+        <div class="metric-key">${k}</div>
+        <div class="metric-val">${v}</div>
       </div>`).join('');
 
   } catch(e) { console.error(e); }

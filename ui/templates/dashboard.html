@@ -4,121 +4,44 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AlgoTrader — Dashboard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/styling.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.1.1/dist/chartjs-chart-financial.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
 <style>
-  :root {
-    --bg: #0b0f1a; --surface: #111827; --surface2: #1a2332;
-    --border: #1f2937; --accent: #22d3a5; --accent2: #3b82f6;
-    --danger: #f43f5e; --warning: #f59e0b;
-    --text: #f1f5f9; --muted: #64748b;
-    --mono: 'DM Mono', monospace; --sans: 'Syne', sans-serif;
-  }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: var(--sans); display: flex; min-height: 100vh; }
+  body { display:flex; min-height:100vh; }
+  .main { margin-left:220px; flex:1; padding:1.75rem 2rem; }
 
-  /* Sidebar */
-  .sidebar { width: 240px; min-height: 100vh; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 1.5rem 1rem; position: fixed; top: 0; left: 0; z-index: 100; }
-  .sidebar-logo { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.5rem 1.5rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
-  .logo-icon { width: 34px; height: 34px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
-  .logo-name { font-size: 1.1rem; font-weight: 800; letter-spacing: -0.02em; }
-  .logo-ver { font-size: 0.65rem; color: var(--muted); font-family: var(--mono); }
-  .nav-label { font-size: 0.65rem; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; padding: 0 0.5rem; margin-bottom: 0.5rem; }
-  .nav-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 0.75rem; border-radius: 8px; color: var(--muted); text-decoration: none; font-size: 0.875rem; font-weight: 600; transition: all 0.15s; margin-bottom: 0.2rem; }
-  .nav-link:hover { background: var(--surface2); color: var(--text); }
-  .nav-link.active { background: rgba(34,211,165,0.1); color: var(--accent); border: 1px solid rgba(34,211,165,0.15); }
-  .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
-  .sidebar-bottom { margin-top: auto; border-top: 1px solid var(--border); padding-top: 1rem; }
-  .connection-badge { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.75rem; border-radius: 8px; background: var(--surface2); font-size: 0.75rem; font-family: var(--mono); margin-bottom: 0.75rem; }
-  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; flex-shrink: 0; }
-  @keyframes pulse { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,211,165,0.4)}50%{opacity:.8;box-shadow:0 0 0 4px rgba(34,211,165,0)} }
-  .btn-disconnect { width: 100%; padding: 0.6rem; background: rgba(244,63,94,0.1); border: 1px solid rgba(244,63,94,0.2); color: #fda4af; border-radius: 8px; font-family: var(--sans); font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
-  .btn-disconnect:hover { background: rgba(244,63,94,0.2); }
+  /* Signal display */
+  .signal-main { font-size:2.2rem; font-weight:700; letter-spacing:-0.03em; font-family:var(--mono); line-height:1; }
+  .signal-main.BUY  { color:var(--accent); }
+  .signal-main.SELL { color:#fca5a5; }
+  .signal-main.NONE { color:var(--muted); }
 
-  /* Main */
-  .main { margin-left: 240px; flex: 1; padding: 2rem; }
-  .page-header { margin-bottom: 2rem; }
-  .page-title { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.03em; }
-  .page-sub { color: var(--muted); font-family: var(--mono); font-size: 0.8rem; margin-top: 0.2rem; }
+  .conf-bar-bg { height:5px; background:var(--surface2); border-radius:3px; overflow:hidden; margin:0.5rem 0 0.25rem; }
+  .conf-bar { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:3px; transition:width 0.5s ease; }
 
-  /* Stats */
-  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
-  .stat-tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem 1.4rem; position: relative; overflow: hidden; }
-  .stat-tile::before { content:''; position:absolute; top:0;left:0;right:0; height:2px; background:linear-gradient(90deg,var(--accent),transparent); }
-  .stat-label { font-size: 0.68rem; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.5rem; }
-  .stat-value { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
-  .stat-delta { font-size: 0.7rem; font-family: var(--mono); color: var(--muted); margin-top: 0.3rem; }
+  .votes-row { display:flex; gap:1.25rem; margin-top:1rem; }
+  .vote-block { text-align:center; min-width:50px; }
+  .vote-num { font-size:1.6rem; font-weight:700; font-family:var(--mono); line-height:1; }
+  .vote-buy { color:var(--accent); }
+  .vote-sell { color:#fca5a5; }
+  .vote-none { color:var(--muted); }
+  .vote-lbl { font-size:0.65rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; margin-top:0.2rem; }
 
-  /* Cards */
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-bottom: 1.5rem; }
-  .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; }
-  .card-title { font-size: 0.72rem; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .trade-row { display:flex; gap:0.875rem; align-items:flex-end; flex-wrap:wrap; margin-bottom:0.875rem; }
 
-  /* Signal */
-  .signal-badge { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.9rem; border-radius: 20px; font-family: var(--mono); font-size: 0.82rem; font-weight: 500; }
-  .signal-BUY  { background:rgba(34,211,165,0.12); color:var(--accent); border:1px solid rgba(34,211,165,0.2); }
-  .signal-SELL { background:rgba(244,63,94,0.12); color:#fda4af; border:1px solid rgba(244,63,94,0.2); }
-  .signal-NONE { background:rgba(100,116,139,0.12); color:var(--muted); border:1px solid rgba(100,116,139,0.2); }
+  .account-grid { display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; font-size:0.8rem; }
+  .account-grid .key { color:var(--muted); }
+  .account-grid .val { font-family:var(--mono); color:var(--text-dim); }
 
-  /* Big signal display */
-  .signal-main { font-size: 2.8rem; font-weight: 800; letter-spacing: -0.04em; }
-  .signal-main.BUY  { color: var(--accent); }
-  .signal-main.SELL { color: #fda4af; }
-  .signal-main.NONE { color: var(--muted); }
+  .top-strat { display:flex; justify-content:space-between; align-items:center; padding:0.4rem 0; border-bottom:1px solid rgba(30,42,58,0.6); font-size:0.78rem; }
+  .top-strat:last-child { border-bottom:none; }
+  .top-strat .name { color:var(--text-dim); font-family:var(--mono); }
+  .top-strat .pct  { color:var(--accent); font-family:var(--mono); font-weight:500; }
 
-  /* Confidence bar */
-  .conf-bar-bg { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin: 0.5rem 0; }
-  .conf-bar    { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 3px; transition: width 0.6s ease; }
-
-  /* Trade controls */
-  .trade-row { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1rem; }
-  .form-field { display: flex; flex-direction: column; gap: 0.4rem; }
-  .form-field label { font-size: 0.68rem; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
-  .form-field select, .form-field input { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.9rem; color: var(--text); font-family: var(--mono); font-size: 0.85rem; outline: none; transition: border-color 0.15s; }
-  .form-field select:focus, .form-field input:focus { border-color: var(--accent); }
-
-  .btn { padding: 0.65rem 1.4rem; border: none; border-radius: 8px; font-family: var(--sans); font-size: 0.875rem; font-weight: 700; cursor: pointer; transition: all 0.15s; }
-  .btn-buy  { background:rgba(34,211,165,0.15); color:var(--accent); border:1px solid rgba(34,211,165,0.3); }
-  .btn-buy:hover  { background:rgba(34,211,165,0.25); box-shadow:0 4px 16px rgba(34,211,165,0.15); }
-  .btn-sell { background:rgba(244,63,94,0.12); color:#fda4af; border:1px solid rgba(244,63,94,0.25); }
-  .btn-sell:hover { background:rgba(244,63,94,0.22); }
-
-  /* Votes */
-  .votes-row { display: flex; gap: 1.5rem; }
-  .vote-block { text-align: center; }
-  .vote-num { font-size: 2rem; font-weight: 800; line-height: 1; }
-  .vote-buy  { color: var(--accent); }
-  .vote-sell { color: #fda4af; }
-  .vote-none { color: var(--muted); }
-  .vote-lbl  { font-size: 0.65rem; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.2rem; }
-
-  /* Positions table */
-  table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
-  th { text-align:left; font-family:var(--mono); font-size:0.67rem; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; padding:0.6rem 1rem; border-bottom:1px solid var(--border); }
-  td { padding:0.7rem 1rem; border-bottom:1px solid rgba(31,41,55,0.5); font-family:var(--mono); }
-  tr:last-child td { border-bottom:none; }
-  .positive { color: var(--accent); }
-  .negative { color: #fda4af; }
-
-  /* Grid */
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-
-  /* Toast */
-  .toast-container { position:fixed; top:1.5rem; right:1.5rem; z-index:999; display:flex; flex-direction:column; gap:0.5rem; }
-  .toast { padding:0.75rem 1.2rem; border-radius:10px; font-family:var(--mono); font-size:0.82rem; animation:slideIn 0.3s ease both; max-width:320px; }
-  .toast-success { background:rgba(34,211,165,0.12); border:1px solid rgba(34,211,165,0.25); color:var(--accent); }
-  .toast-error   { background:rgba(244,63,94,0.12); border:1px solid rgba(244,63,94,0.25); color:#fda4af; }
-  @keyframes slideIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
-
-  canvas { max-height: 300px; }
+  .trade-result { margin-top:0.75rem; font-family:var(--mono); font-size:0.75rem; color:var(--muted); line-height:1.5; }
 </style>
 </head>
 <body>
-
 <div class="toast-container" id="toastContainer"></div>
 
 <nav class="sidebar">
@@ -126,7 +49,7 @@
     <div class="logo-icon">⚡</div>
     <div><div class="logo-name">AlgoTrader</div><div class="logo-ver">v2.0 · 40 Strategies</div></div>
   </div>
-  <div class="nav-label">Navigation</div>
+  <div class="nav-section-label">Navigation</div>
   <a href="/dashboard"   class="nav-link active"><span class="nav-icon">📊</span> Dashboard</a>
   <a href="/history"     class="nav-link"><span class="nav-icon">📜</span> Trade History</a>
   <a href="/performance" class="nav-link"><span class="nav-icon">📈</span> Performance</a>
@@ -138,12 +61,9 @@
 </nav>
 
 <main class="main">
-  <div class="page-header">
-    <div class="page-title">Live Dashboard</div>
-    <div class="page-sub">// Real-time signals · 40-strategy engine · Mock mode active</div>
-  </div>
+  <div class="page-title">Live Dashboard</div>
+  <div class="page-sub">Real-time signals · 40-strategy engine · mock mode active</div>
 
-  <!-- Account stats -->
   <div class="stats-grid">
     <div class="stat-tile">
       <div class="stat-label">Balance</div>
@@ -162,99 +82,80 @@
     </div>
     <div class="stat-tile">
       <div class="stat-label">Open Positions</div>
-      <div class="stat-value" id="posCount">—</div>
+      <div class="stat-value" id="posCount">0</div>
       <div class="stat-delta">active trades</div>
     </div>
   </div>
 
   <div class="grid-2">
-
     <!-- Signal panel -->
     <div class="card">
       <div class="card-header">
         <div class="card-title">Strategy Signal</div>
-        <button class="btn btn-buy" style="padding:0.4rem 0.8rem;font-size:0.75rem;" onclick="refreshSignal()">↻ Refresh</button>
+        <button class="btn btn-ghost" style="font-size:0.78rem;padding:0.35rem 0.7rem;" onclick="refreshSignal()">↻ Refresh</button>
       </div>
 
       <div id="signalMain" class="signal-main NONE">—</div>
-      <div style="margin:0.5rem 0;">
-        <div style="font-size:0.72rem;font-family:var(--mono);color:var(--muted);margin-bottom:0.3rem;">CONFIDENCE</div>
+
+      <div style="margin-top:0.5rem;">
+        <div style="font-size:0.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;">Confidence</div>
         <div class="conf-bar-bg"><div class="conf-bar" id="confBar" style="width:0%"></div></div>
-        <div style="font-size:0.72rem;font-family:var(--mono);color:var(--muted);" id="confPct">0%</div>
+        <div style="font-size:0.75rem;color:var(--muted);font-family:var(--mono);" id="confPct">0%</div>
       </div>
 
-      <div class="votes-row" style="margin-top:1rem;">
-        <div class="vote-block">
-          <div class="vote-num vote-buy" id="vBuy">—</div>
-          <div class="vote-lbl">Buy votes</div>
-        </div>
-        <div class="vote-block">
-          <div class="vote-num vote-sell" id="vSell">—</div>
-          <div class="vote-lbl">Sell votes</div>
-        </div>
-        <div class="vote-block">
-          <div class="vote-num vote-none" id="vNone">—</div>
-          <div class="vote-lbl">Hold votes</div>
-        </div>
-        <div class="vote-block">
-          <div class="vote-num" id="vTotal" style="color:var(--text);">—</div>
-          <div class="vote-lbl">Total evaluated</div>
-        </div>
+      <div class="votes-row">
+        <div class="vote-block"><div class="vote-num vote-buy" id="vBuy">—</div><div class="vote-lbl">Buy</div></div>
+        <div class="vote-block"><div class="vote-num vote-sell" id="vSell">—</div><div class="vote-lbl">Sell</div></div>
+        <div class="vote-block"><div class="vote-num vote-none" id="vNone">—</div><div class="vote-lbl">Hold</div></div>
+        <div class="vote-block"><div class="vote-num" id="vTotal" style="color:var(--text-dim);">—</div><div class="vote-lbl">Total</div></div>
       </div>
 
-      <!-- Top strategies -->
-      <div style="margin-top:1.2rem;">
-        <div style="font-size:0.68rem;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.5rem;">Top Strategies</div>
-        <div id="topStrategies" style="display:flex;flex-direction:column;gap:0.3rem;font-family:var(--mono);font-size:0.75rem;color:var(--muted);">
-          —
-        </div>
+      <div style="margin-top:1rem;border-top:1px solid var(--border);padding-top:0.875rem;">
+        <div style="font-size:0.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.5rem;">Top Strategies</div>
+        <div id="topStrategies" style="color:var(--muted);font-size:0.78rem;font-family:var(--mono);">—</div>
       </div>
     </div>
 
     <!-- Trade controls -->
     <div class="card">
-      <div class="card-title" style="margin-bottom:1.2rem;">Execute Trade</div>
+      <div class="card-title">Execute Trade</div>
 
       <div class="trade-row">
         <div class="form-field">
           <label>Symbol</label>
           <select id="symbol" onchange="onSymbolChange()">
-            <option>EURUSD</option>
-            <option>GBPUSD</option>
-            <option>USDJPY</option>
-            <option>XAUUSD</option>
-            <option>US30</option>
+            <option>EURUSD</option><option>GBPUSD</option>
+            <option>USDJPY</option><option>XAUUSD</option><option>US30</option>
           </select>
         </div>
         <div class="form-field">
           <label>Lot Size</label>
-          <input type="number" id="lot" value="0.01" min="0.01" step="0.01" style="width:90px;">
+          <input type="number" id="lot" value="0.01" min="0.01" step="0.01" style="width:80px;">
         </div>
         <div class="form-field">
-          <label>SL Pips</label>
-          <input type="number" id="slPips" value="50" min="1" style="width:80px;">
+          <label>SL (pips)</label>
+          <input type="number" id="slPips" value="50" min="1" style="width:72px;">
         </div>
         <div class="form-field">
-          <label>TP Pips</label>
-          <input type="number" id="tpPips" value="100" min="1" style="width:80px;">
+          <label>TP (pips)</label>
+          <input type="number" id="tpPips" value="100" min="1" style="width:72px;">
         </div>
       </div>
 
-      <div style="display:flex;gap:1rem;margin-top:0.5rem;">
-        <button class="btn btn-buy"  style="flex:1;padding:0.875rem;" onclick="placeTrade('BUY')">▲ BUY</button>
-        <button class="btn btn-sell" style="flex:1;padding:0.875rem;" onclick="placeTrade('SELL')">▼ SELL</button>
+      <div style="display:flex;gap:0.75rem;">
+        <button class="btn btn-buy" style="flex:1;padding:0.7rem;font-size:0.9rem;" onclick="placeTrade('BUY')">▲ BUY</button>
+        <button class="btn btn-sell" style="flex:1;padding:0.7rem;font-size:0.9rem;" onclick="placeTrade('SELL')">▼ SELL</button>
       </div>
 
-      <div id="tradeResult" style="margin-top:1rem;font-family:var(--mono);font-size:0.78rem;color:var(--muted);"></div>
+      <div class="trade-result" id="tradeResult"></div>
 
-      <!-- Account detail -->
-      <div style="margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1rem;">
-        <div style="font-size:0.68rem;font-family:var(--mono);color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.75rem;">Account Detail</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-family:var(--mono);font-size:0.78rem;">
-          <div style="color:var(--muted);">Free Margin</div> <div id="freeMargin">—</div>
-          <div style="color:var(--muted);">Margin</div>      <div id="margin">—</div>
-          <div style="color:var(--muted);">Server</div>      <div id="server" style="color:var(--accent);">—</div>
-          <div style="color:var(--muted);">Login</div>       <div id="login">—</div>
+      <div style="margin-top:1.1rem;border-top:1px solid var(--border);padding-top:0.875rem;">
+        <div style="font-size:0.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.6rem;">Account</div>
+        <div class="account-grid">
+          <div class="key">Free Margin</div> <div class="val" id="freeMargin">—</div>
+          <div class="key">Margin Used</div> <div class="val" id="margin">—</div>
+          <div class="key">Server</div>      <div class="val" id="server" style="color:var(--accent);">—</div>
+          <div class="key">Login</div>       <div class="val" id="login">—</div>
         </div>
       </div>
     </div>
@@ -264,10 +165,10 @@
   <div class="card">
     <div class="card-header">
       <div class="card-title">Price Chart — <span id="chartSymbol">EURUSD</span></div>
-      <div style="display:flex;gap:0.5rem;">
-        <button class="btn btn-buy" style="padding:0.3rem 0.7rem;font-size:0.72rem;" onclick="loadChart('M5')">M5</button>
-        <button class="btn btn-buy" style="padding:0.3rem 0.7rem;font-size:0.72rem;" onclick="loadChart('M15')">M15</button>
-        <button class="btn btn-buy" style="padding:0.3rem 0.7rem;font-size:0.72rem;" onclick="loadChart('H1')">H1</button>
+      <div style="display:flex;gap:0.4rem;">
+        <button class="btn btn-ghost" style="font-size:0.75rem;padding:0.3rem 0.6rem;" onclick="loadChart('M5')">M5</button>
+        <button class="btn btn-ghost" style="font-size:0.75rem;padding:0.3rem 0.6rem;" onclick="loadChart('M15')">M15</button>
+        <button class="btn btn-ghost" style="font-size:0.75rem;padding:0.3rem 0.6rem;" onclick="loadChart('H1')">H1</button>
       </div>
     </div>
     <canvas id="priceChart"></canvas>
@@ -275,9 +176,9 @@
 
   <!-- Open positions -->
   <div class="card">
-    <div class="card-title" style="margin-bottom:1rem;">Open Positions</div>
+    <div class="card-title">Open Positions</div>
     <div id="positionsTable">
-      <div style="color:var(--muted);font-family:var(--mono);font-size:0.82rem;padding:1rem 0;">No open positions</div>
+      <div class="empty">No open positions</div>
     </div>
   </div>
 </main>
@@ -287,7 +188,6 @@ const API = 'http://localhost:8000';
 let priceChart = null;
 let currentTf  = 'M15';
 
-// ── Toast ──────────────────────────────────────────────
 function toast(msg, type='success') {
   const el = document.createElement('div');
   el.className = `toast toast-${type}`;
@@ -296,74 +196,62 @@ function toast(msg, type='success') {
   setTimeout(() => el.remove(), 4000);
 }
 
-// ── Disconnect ─────────────────────────────────────────
 async function disconnectMT5() {
-  await fetch(`${API}/api/disconnect`, { method: 'POST' });
+  await fetch(`${API}/api/disconnect`, { method:'POST' });
   localStorage.clear();
   window.location.href = '/';
 }
 
-// ── Load account info ──────────────────────────────────
 async function loadAccount() {
   try {
     const res  = await fetch(`${API}/api/account`);
     const data = await res.json();
     document.getElementById('balance').textContent    = '$' + Number(data.balance).toFixed(2);
     document.getElementById('equity').textContent     = '$' + Number(data.equity).toFixed(2);
-    document.getElementById('currency').textContent   = data.currency || 'USD';
-    document.getElementById('profit').textContent     = (data.profit >= 0 ? '+' : '') + Number(data.profit).toFixed(2) + ' profit';
+    document.getElementById('profit').textContent     = (data.profit >= 0 ? '+' : '') + Number(data.profit).toFixed(2) + ' P&L';
     document.getElementById('freeMargin').textContent = '$' + Number(data.free_margin).toFixed(2);
     document.getElementById('margin').textContent     = '$' + Number(data.margin).toFixed(2);
     document.getElementById('server').textContent     = data.server || '—';
     document.getElementById('login').textContent      = data.login || '—';
-  } catch(e) { console.error(e); }
+  } catch(e) {}
 }
 
-// ── Load live price ────────────────────────────────────
 async function loadPrice() {
   const symbol = document.getElementById('symbol').value;
   try {
     const res  = await fetch(`${API}/api/price/${symbol}`);
     const data = await res.json();
     document.getElementById('livePrice').textContent = Number(data.bid).toFixed(5);
-    document.getElementById('spread').textContent    = 'Spread: ' + Number(data.spread).toFixed(5);
+    document.getElementById('spread').textContent    = 'Spread ' + Number(data.spread).toFixed(5);
   } catch(e) {}
 }
 
-// ── Load signal ────────────────────────────────────────
 async function refreshSignal() {
   const symbol = document.getElementById('symbol').value;
   document.getElementById('signalMain').textContent = '...';
   try {
     const res  = await fetch(`${API}/api/signal/${symbol}`);
     const data = await res.json();
-
-    const el = document.getElementById('signalMain');
+    const el   = document.getElementById('signalMain');
     el.textContent = data.final_signal;
     el.className   = `signal-main ${data.final_signal}`;
-
     document.getElementById('confBar').style.width = data.confidence + '%';
     document.getElementById('confPct').textContent = data.confidence + '% confidence';
     document.getElementById('vBuy').textContent    = data.buy_votes;
     document.getElementById('vSell').textContent   = data.sell_votes;
     document.getElementById('vNone').textContent   = data.none_votes;
     document.getElementById('vTotal').textContent  = data.total_evaluated;
-
     const topEl = document.getElementById('topStrategies');
     if (data.top_strategies && data.top_strategies.length > 0) {
       topEl.innerHTML = data.top_strategies.map(s =>
-        `<div style="display:flex;justify-content:space-between;">
-           <span>${s.name}</span>
-           <span style="color:var(--accent);">${s.confidence}%</span>
-         </div>`
+        `<div class="top-strat"><span class="name">${s.name}</span><span class="pct">${s.confidence}%</span></div>`
       ).join('');
     } else {
-      topEl.textContent = 'No strong signals';
+      topEl.textContent = 'No strong signals at this time';
     }
   } catch(e) { document.getElementById('signalMain').textContent = 'ERROR'; }
 }
 
-// ── Load chart ─────────────────────────────────────────
 async function loadChart(tf = 'M15') {
   currentTf = tf;
   const symbol = document.getElementById('symbol').value;
@@ -371,30 +259,22 @@ async function loadChart(tf = 'M15') {
   try {
     const res  = await fetch(`${API}/api/ohlcv/${symbol}?timeframe=${tf}&count=80`);
     const data = await res.json();
-
-    const labels = data.data.map(d => d.time);
+    const labels = data.data.map(d => d.time.slice(11, 16));
     const closes = data.data.map(d => d.close);
-
     if (priceChart) priceChart.destroy();
-
     const ctx = document.getElementById('priceChart').getContext('2d');
     priceChart = new Chart(ctx, {
       type: 'line',
       data: {
         labels,
         datasets: [{
-          label: symbol,
-          data: closes,
-          borderColor: '#22d3a5',
-          borderWidth: 1.5,
-          pointRadius: 0,
-          tension: 0.1,
-          fill: true,
+          data: closes, borderColor: '#22d3a5', borderWidth: 1.5,
+          pointRadius: 0, tension: 0.1, fill: true,
           backgroundColor: (ctx) => {
-            const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 300);
-            gradient.addColorStop(0, 'rgba(34,211,165,0.12)');
-            gradient.addColorStop(1, 'rgba(34,211,165,0)');
-            return gradient;
+            const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 260);
+            g.addColorStop(0, 'rgba(34,211,165,0.1)');
+            g.addColorStop(1, 'rgba(34,211,165,0)');
+            return g;
           }
         }]
       },
@@ -402,107 +282,64 @@ async function loadChart(tf = 'M15') {
         responsive: true,
         plugins: { legend: { display: false } },
         scales: {
-          x: {
-            ticks: { color: '#64748b', font: { family: 'DM Mono', size: 10 }, maxTicksLimit: 8 },
-            grid: { color: 'rgba(31,41,55,0.8)' }
-          },
-          y: {
-            ticks: { color: '#64748b', font: { family: 'DM Mono', size: 10 } },
-            grid: { color: 'rgba(31,41,55,0.8)' }
-          }
+          x: { ticks: { color:'#64748b', font:{family:'JetBrains Mono',size:10}, maxTicksLimit:8 }, grid: { color:'rgba(30,42,58,0.8)' } },
+          y: { ticks: { color:'#64748b', font:{family:'JetBrains Mono',size:10} },                  grid: { color:'rgba(30,42,58,0.8)' } }
         }
       }
     });
-  } catch(e) { console.error(e); }
+  } catch(e) {}
 }
 
-// ── Place trade ────────────────────────────────────────
 async function placeTrade(direction) {
   const body = {
-    symbol:  document.getElementById('symbol').value,
-    signal:  direction,
-    lot:     parseFloat(document.getElementById('lot').value),
+    symbol: document.getElementById('symbol').value,
+    signal: direction,
+    lot:    parseFloat(document.getElementById('lot').value),
     sl_pips: parseInt(document.getElementById('slPips').value),
     tp_pips: parseInt(document.getElementById('tpPips').value),
   };
-
   try {
-    const res  = await fetch(`${API}/api/trade`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
+    const res  = await fetch(`${API}/api/trade`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
     const data = await res.json();
-
     if (data.success) {
-      toast(`${direction} order placed! Ticket #${data.order_id} @ ${Number(data.price).toFixed(5)}`);
+      toast(`${direction} placed — Ticket #${data.order_id} @ ${Number(data.price).toFixed(5)}`);
       document.getElementById('tradeResult').innerHTML =
-        `<span style="color:var(--accent);">✓ ${direction} executed</span> · Order #${data.order_id} · Price: ${Number(data.price).toFixed(5)} · SL: ${Number(data.sl).toFixed(5)} · TP: ${Number(data.tp).toFixed(5)}`;
+        `<span style="color:var(--accent)">✓ ${direction}</span> · #${data.order_id} · @ ${Number(data.price).toFixed(5)} · SL ${Number(data.sl).toFixed(5)} · TP ${Number(data.tp).toFixed(5)}`;
       loadPositions();
     } else {
       toast(data.message || 'Trade rejected', 'error');
-      document.getElementById('tradeResult').innerHTML =
-        `<span style="color:#fda4af;">✗ Rejected:</span> ${data.message}`;
+      document.getElementById('tradeResult').innerHTML = `<span style="color:#fca5a5">✗ Rejected</span> · ${data.message}`;
     }
-  } catch(e) {
-    toast('Trade failed: ' + e.message, 'error');
-  }
+  } catch(e) { toast('Trade failed: ' + e.message, 'error'); }
 }
 
-// ── Load positions ─────────────────────────────────────
 async function loadPositions() {
   try {
     const res  = await fetch(`${API}/api/positions`);
     const data = await res.json();
-    const container = document.getElementById('positionsTable');
     document.getElementById('posCount').textContent = data.positions.length;
-
-    if (!data.positions.length) {
-      container.innerHTML = '<div style="color:var(--muted);font-family:var(--mono);font-size:0.82rem;padding:1rem 0;">No open positions</div>';
-      return;
-    }
-
+    const container = document.getElementById('positionsTable');
+    if (!data.positions.length) { container.innerHTML = '<div class="empty">No open positions</div>'; return; }
     container.innerHTML = `
       <table>
-        <thead>
-          <tr>
-            <th>Ticket</th><th>Symbol</th><th>Type</th>
-            <th>Volume</th><th>Open Price</th><th>SL</th><th>TP</th><th>Profit</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Ticket</th><th>Symbol</th><th>Type</th><th>Vol</th><th>Open Price</th><th>SL</th><th>TP</th><th>Profit</th></tr></thead>
         <tbody>
           ${data.positions.map(p => `
             <tr>
-              <td>#${p.ticket}</td>
-              <td>${p.symbol}</td>
-              <td class="${p.type === 0 ? 'positive' : 'negative'}">${p.type === 0 ? 'BUY' : 'SELL'}</td>
-              <td>${p.volume}</td>
-              <td>${Number(p.price_open).toFixed(5)}</td>
-              <td>${Number(p.sl).toFixed(5)}</td>
-              <td>${Number(p.tp).toFixed(5)}</td>
-              <td class="${p.profit >= 0 ? 'positive' : 'negative'}">${(p.profit >= 0 ? '+' : '')}${Number(p.profit).toFixed(2)}</td>
-            </tr>
-          `).join('')}
+              <td>#${p.ticket}</td><td>${p.symbol}</td>
+              <td class="${p.type===0?'positive':'negative'}">${p.type===0?'BUY':'SELL'}</td>
+              <td>${p.volume}</td><td>${Number(p.price_open).toFixed(5)}</td>
+              <td>${Number(p.sl).toFixed(5)}</td><td>${Number(p.tp).toFixed(5)}</td>
+              <td class="${p.profit>=0?'positive':'negative'}">${p.profit>=0?'+':''}${Number(p.profit).toFixed(2)}</td>
+            </tr>`).join('')}
         </tbody>
       </table>`;
   } catch(e) {}
 }
 
-// ── Symbol change ──────────────────────────────────────
-function onSymbolChange() {
-  loadPrice();
-  refreshSignal();
-  loadChart(currentTf);
-}
+function onSymbolChange() { loadPrice(); refreshSignal(); loadChart(currentTf); }
 
-// ── Initial load ───────────────────────────────────────
-loadAccount();
-loadPrice();
-refreshSignal();
-loadChart('M15');
-loadPositions();
-
-// Auto-refresh price every 5 seconds
+loadAccount(); loadPrice(); refreshSignal(); loadChart('M15'); loadPositions();
 setInterval(loadPrice, 5000);
 setInterval(loadPositions, 10000);
 </script>
