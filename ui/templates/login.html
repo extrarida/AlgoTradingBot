@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlgoTrader — Connect</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0b0f1a;
+    --surface:  #111827;
+    --border:   #1f2937;
+    --accent:   #22d3a5;
+    --accent2:  #3b82f6;
+    --danger:   #f43f5e;
+    --text:     #f1f5f9;
+    --muted:    #64748b;
+    --mono:     'DM Mono', monospace;
+    --sans:     'Syne', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(34,211,165,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(34,211,165,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  /* Glowing orbs */
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    animation: drift 12s ease-in-out infinite;
+  }
+  .orb-1 {
+    width: 400px; height: 400px;
+    background: rgba(34,211,165,0.08);
+    top: -100px; left: -100px;
+  }
+  .orb-2 {
+    width: 350px; height: 350px;
+    background: rgba(59,130,246,0.06);
+    bottom: -80px; right: -80px;
+    animation-delay: -6s;
+  }
+
+  @keyframes drift {
+    0%, 100% { transform: translate(0, 0); }
+    50%       { transform: translate(30px, 20px); }
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3rem;
+    width: 420px;
+    position: relative;
+    z-index: 1;
+    animation: rise 0.6s cubic-bezier(0.16,1,0.3,1) both;
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(30px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+  }
+
+  .logo-icon {
+    width: 42px; height: 42px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+  }
+
+  .logo-text {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+
+  .logo-sub {
+    font-size: 0.7rem;
+    color: var(--muted);
+    font-family: var(--mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 0.1rem;
+  }
+
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+    letter-spacing: -0.02em;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.875rem;
+    margin-bottom: 2rem;
+    font-family: var(--mono);
+  }
+
+  .demo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(34,211,165,0.1);
+    border: 1px solid rgba(34,211,165,0.2);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 20px;
+    margin-bottom: 1.5rem;
+  }
+
+  .demo-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+  }
+
+  .field {
+    margin-bottom: 1.2rem;
+  }
+
+  label {
+    display: block;
+    font-size: 0.75rem;
+    font-family: var(--mono);
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.5rem;
+  }
+
+  input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(34,211,165,0.08);
+  }
+
+  input::placeholder { color: var(--muted); }
+
+  .btn {
+    width: 100%;
+    padding: 0.875rem;
+    border: none;
+    border-radius: 10px;
+    font-family: var(--sans);
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #0b0f1a;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 24px rgba(34,211,165,0.25);
+  }
+
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .error-msg {
+    background: rgba(244,63,94,0.1);
+    border: 1px solid rgba(244,63,94,0.2);
+    color: #fda4af;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    font-family: var(--mono);
+    margin-top: 1rem;
+    display: none;
+  }
+
+  .spinner {
+    display: none;
+    width: 18px; height: 18px;
+    border: 2px solid rgba(11,15,26,0.3);
+    border-top-color: #0b0f1a;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <div class="logo-text">AlgoTrader</div>
+      <div class="logo-sub">v2.0 · Algorithmic Engine</div>
+    </div>
+  </div>
+
+  <h1>Connect to Broker</h1>
+  <p class="subtitle">// MT5 authentication required</p>
+
+  <div class="demo-badge">MOCK MODE ACTIVE — any credentials work</div>
+
+  <form id="loginForm">
+    <div class="field">
+      <label>Account Number</label>
+      <input type="number" id="login" placeholder="e.g. 12345678" value="12345678" required>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="Your MT5 password" value="demo" required>
+    </div>
+    <div class="field">
+      <label>Broker Server</label>
+      <input type="text" id="server" placeholder="e.g. ICMarkets-Demo" value="MockBroker" required>
+    </div>
+    <button type="submit" class="btn btn-primary" id="connectBtn">
+      <span id="btnText">Connect to MT5</span>
+      <div class="spinner" id="spinner"></div>
+    </button>
+    <div class="error-msg" id="errorMsg"></div>
+  </form>
+</div>
+
+<script>
+  const API = 'http://localhost:8000';
+
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const btn     = document.getElementById('connectBtn');
+    const btnText = document.getElementById('btnText');
+    const spinner = document.getElementById('spinner');
+    const errMsg  = document.getElementById('errorMsg');
+
+    // Show loading state
+    btn.disabled  = true;
+    btnText.style.display = 'none';
+    spinner.style.display = 'block';
+    errMsg.style.display  = 'none';
+
+    try {
+      const res = await fetch(`${API}/api/connect`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          login:    parseInt(document.getElementById('login').value),
+          password: document.getElementById('password').value,
+          server:   document.getElementById('server').value,
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        // Save account info and redirect to dashboard
+        localStorage.setItem('account', JSON.stringify(data.account));
+        localStorage.setItem('connected', 'true');
+        window.location.href = '/dashboard';
+      } else {
+        throw new Error(data.detail || 'Connection failed');
+      }
+    } catch (err) {
+      errMsg.textContent    = err.message;
+      errMsg.style.display  = 'block';
+      btn.disabled          = false;
+      btnText.style.display = 'block';
+      spinner.style.display = 'none';
+    }
+  });
+</script>
+</body>
+</html>
