@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 # ── Try real MT5 package ──────────────────────────────────────────────────────
 try:
-    import MetaTrader5 as _mt5
+    import MetaTrader5 as _mt5 # type: ignore
     _MT5_AVAILABLE = True
 except ImportError:
     _mt5 = None           # type: ignore

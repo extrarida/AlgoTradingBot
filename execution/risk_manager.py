@@ -36,7 +36,7 @@ class RiskManager:
     """
 
     def __init__(self, params: RiskParams | None = None) -> None:
-        self.params        = params or RiskParams()
+        self.params        = params or RiskParams() #comment
         self._daily_trades: dict[date, int] = {}
         self._peak_equity:  float | None    = None
         self._kill_switch:  bool            = False
