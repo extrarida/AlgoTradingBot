@@ -25,7 +25,9 @@ AlgoTrader Bot is a Python-based algorithmic trading system that connects to the
 
 The system runs **40 independent trading strategies** simultaneously — 20 for identifying buy opportunities and 20 for sell opportunities. A central strategy engine aggregates all votes and only places a trade when enough strategies agree with sufficient confidence. Every trade is protected by a 5-layer pre-trade risk management system before execution.
 
-The application runs fully in **Mock Mode** on any machine without a real MT5 connection, making it easy to demonstrate and test on any operating system.
+The application can run fully in **Mock Mode** on any machine without a real MT5 connection, making it easy to demonstrate and test on any operating system.
+
+Currently, the trading logic, the testing for said logic and the UI is complete. External market data API integration, database integration and real MT5 broker integration testing is remaining.
 
 ---
 
