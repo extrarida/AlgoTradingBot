@@ -283,7 +283,7 @@ class MT5Connector:
     @staticmethod
     def _mock_rates(symbol: str, count: int) -> pd.DataFrame:
         """Generate synthetic OHLCV data using a seeded random walk."""
-        rng   = np.random.default_rng(abs(hash(symbol)) % (2 ** 31))
+        rng = np.random.default_rng(abs(hash(symbol + str(datetime.utcnow().hour))) % (2**31))
         base  = {"EURUSD": 1.10, "GBPUSD": 1.27, "USDJPY": 149.5,
                  "XAUUSD": 2350.0, "US30": 38500.0}.get(symbol, 1.10)
         noise  = base * 0.0005
@@ -303,14 +303,18 @@ class MT5Connector:
 
     @staticmethod
     def _mock_tick(symbol: str) -> dict:
-        """Generate a realistic fake bid/ask tick for mock mode."""
+        import random
         base   = {"EURUSD": 1.10, "GBPUSD": 1.27, "USDJPY": 149.5,
                   "XAUUSD": 2350.0, "US30": 38500.0}.get(symbol, 1.10)
-        spread = base * 0.0001
+        # Small random movement so price changes on every call
+        movement = random.uniform(-0.0003, 0.0003) * base
+        bid      = round(base + movement, 5)
+        spread   = round(base * 0.0001, 5)
         return {
-            "bid":    round(base, 5),
-            "ask":    round(base + spread, 5),
-            "last":   round(base, 5),
+            "bid":    bid,
+            "ask":    round(bid + spread, 5),
+            "spread": spread,
+            "last":   bid,
             "volume": 100,
             "time":   int(datetime.utcnow().timestamp()),
         }

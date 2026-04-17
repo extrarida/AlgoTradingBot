@@ -189,28 +189,32 @@ async def get_signal(symbol: str, timeframe: str = "M15"):
 
 @app.get("/api/ohlcv/{symbol}")
 async def get_ohlcv(symbol: str, timeframe: str = "M15", count: int = 100):
-    """
-    Return OHLCV candlestick data for charting.
-    Called by the dashboard to draw the price chart.
-    """
+    """Return OHLCV candlestick data for charting."""
     if not connector.is_connected:
         raise HTTPException(status_code=401, detail="Not connected")
+    
     df = fetcher.get_ohlcv(symbol, timeframe, count)
     if df.empty:
         raise HTTPException(status_code=404, detail="No data")
-    df_reset = df.reset_index()
+    
+    # Reset index to get time as a column regardless of DataFrame format
+    df = df.reset_index()
+    
+    # Handle both 'time' and DatetimeIndex column names
+    time_col = 'time' if 'time' in df.columns else df.columns[0]
+    
     return {
         "symbol": symbol,
         "data": [
             {
-                "time":   str(row["time"]),
-                "open":   round(row["open"],  5),
-                "high":   round(row["high"],  5),
-                "low":    round(row["low"],   5),
-                "close":  round(row["close"], 5),
+                "time":   str(row[time_col])[:16],  # trim to YYYY-MM-DD HH:MM
+                "open":   round(float(row["open"]),  5),
+                "high":   round(float(row["high"]),  5),
+                "low":    round(float(row["low"]),   5),
+                "close":  round(float(row["close"]), 5),
                 "volume": int(row["tick_volume"]),
             }
-            for _, row in df_reset.iterrows()
+            for _, row in df.iterrows()
         ]
     }
 
