@@ -32,7 +32,7 @@ class RiskParams:
 class RiskManager:
     """
     Stateful risk manager.
-    Tracks daily trade count and peak equity.
+    Tracks daily trade count and peak equity....
     """
 
     def __init__(self, params: RiskParams | None = None) -> None:
