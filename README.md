@@ -312,12 +312,12 @@ All settings are centralised in `config/settings.py`. Key values:
 
 ## 👥 Team
 
-| Role | Contribution |
-|------|-------------|
-| **Logic & Strategy** | 40 trading strategies, risk manager, trade executor, technical indicators |
-| **UI & Testing** | FastAPI backend, 5-page HTML dashboard, 83 unit tests, documentation |
-| **API Integration** | External market data API integration *(in progress)* |
-| **Database** | Persistent trade storage and history *(in progress)* |
+| Member  | Role | Contribution |
+|---------|-------|-------------|
+| Archana | **Logic & Strategy** | 40 trading strategies, risk manager, trade executor, technical indicators |
+|  Sara   | **UI & Testing** | FastAPI backend, 5-page HTML dashboard, 83 unit tests, documentation |
+| Shubham | **API Integration** | External market data API integration *(in progress)* |
+| Sivani  | **Database** | Persistent trade storage and history *(in progress)* |
 
 ---
 
