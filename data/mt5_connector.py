@@ -31,7 +31,7 @@ try:
     import MetaTrader5 as _mt5 # type: ignore
     _MT5_AVAILABLE = True
 except ImportError:
-    _mt5 = None           # type: ignore
+    _mt5 = None           # type: ignore --
     _MT5_AVAILABLE = False
     logger.warning("MetaTrader5 package not found – running in MOCK mode.")
 
