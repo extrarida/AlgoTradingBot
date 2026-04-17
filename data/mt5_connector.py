@@ -108,7 +108,7 @@ class MT5Connector:
 
         Falls back to mock mode automatically if:
           - The MetaTrader5 package is not installed
-          - The MT5 application is not running on this machine
+          - The MT5 application is not running on this machine....
         """
         # Case 1: Package not installed (Mac/Linux)
         if not _MT5_AVAILABLE:
