@@ -15,11 +15,12 @@ To run:
 
 Then open: http://localhost:8000
 """
-
 from __future__ import annotations
+from database.repository import get_trade_history, get_performance_summary, get_recent_signals
+from database.repository import save_account_snapshot  # add at top
+from database.repository import save_signal  # add at top
 import logging
 from typing import Optional
-
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -115,6 +116,12 @@ async def connect(body: LoginRequest):
         if not success:
             raise HTTPException(status_code=401, detail="Connection failed. Check credentials.")
         info = connector.get_account_info()
+        save_account_snapshot(       # inside connect(), after info = connector.get_account_info()
+    login=body.login, server=body.server,
+    balance=info.get("balance", 0),
+    equity=info.get("equity", 0),
+    mock_mode=connector.mock_mode,
+)
         return {
             "success":    True,
             "mock_mode":  connector.mock_mode,
@@ -166,6 +173,17 @@ async def get_signal(symbol: str, timeframe: str = "M15"):
     try:
         df     = fetcher.get_ohlcv(symbol, timeframe, 500)
         result = engine.evaluate(df, symbol)
+        save_signal(
+    symbol=symbol, timeframe=timeframe,            # inside get_signal(), after result = engine.evaluate(...)
+    final_signal=result.final_signal,
+    confidence=result.confidence,
+    buy_votes=result.buy_votes,
+    sell_votes=result.sell_votes,
+    none_votes=result.none_votes,
+    total_evaluated=result.total_evaluated,
+    top_strategies=[{"name": s.strategy, "confidence": s.confidence, "reason": s.reason}
+                    for s in result.top_strategies],
+)                            
         return {
             "symbol":         symbol,
             "final_signal":   result.final_signal,
@@ -308,3 +326,14 @@ async def get_status():
         "connected": connector.is_connected,
         "mock_mode": connector.mock_mode,
     }
+@app.get("/api/history")
+async def api_history(symbol: str = None, limit: int = 50):
+    return {"trades": get_trade_history(symbol=symbol, limit=limit)}
+
+@app.get("/api/performance/summary")
+async def api_performance():
+    return {"performance": get_performance_summary(days=30)}
+
+@app.get("/api/signals/log")
+async def api_signals_log(symbol: str = None, limit: int = 20):
+    return {"signals": get_recent_signals(symbol=symbol, limit=limit)}
