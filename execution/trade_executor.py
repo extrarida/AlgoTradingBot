@@ -20,6 +20,7 @@ from data.mt5_connector import (
 )
 from execution.risk_manager import risk_manager
 from strategies.base import Signal
+from database.repository import save_trade
 
 logger = logging.getLogger(__name__)
 
@@ -123,6 +124,18 @@ class TradeExecutor:
         if success:
             risk_manager.record_trade()
             state = OrderState.FILLED
+            save_trade(
+                symbol      = req.symbol,
+                direction   = req.signal.value,
+                lot_size    = req.lot,
+                entry_price = raw.get("price", price),
+                sl_price    = sl_price,
+                tp_price    = tp_price,
+                sl_pips     = req.sl_pips,
+                tp_pips     = req.tp_pips,
+                order_id    = raw.get("order"),
+                deal_id     = raw.get("deal"),
+            )
         else:
             state = OrderState.REJECTED
 

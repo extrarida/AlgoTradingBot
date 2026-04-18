@@ -1,0 +1,7 @@
+algobot.db
+algobot.db-shm
+algobot.db-wal
+__pycache__/
+*.pyc
+venv/
+.env
