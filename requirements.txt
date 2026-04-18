@@ -16,3 +16,6 @@ python-dotenv
 apscheduler
 websockets
 MetaTrader5
+jinja2
+python-multipart
+fastapi
