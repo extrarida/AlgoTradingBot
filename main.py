@@ -27,6 +27,10 @@ from fastapi.requests import Request
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import uvicorn
+import logging
+import os
+from contextlib import asynccontextmanager
 
 # ── Import your teammate's modules ───────────────────────────────────────────
 from data.mt5_connector       import connector
@@ -308,3 +312,11 @@ async def get_status():
         "connected": connector.is_connected,
         "mock_mode": connector.mock_mode,
     }
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=False,
+    )    
