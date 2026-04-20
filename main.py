@@ -69,6 +69,7 @@ class LoginRequest(BaseModel):
     login:    int
     password: str
     server:   str
+    demo_mode: bool = False   # new field, defaults to False
 
 class TradeRequestBody(BaseModel):
     symbol:   str
@@ -111,26 +112,35 @@ async def risk(request: Request):
 
 @app.post("/api/connect")
 async def connect(body: LoginRequest):
-    """
-    Connect to MT5 broker.
-    Called when user clicks Connect on the login page.
-    """
     try:
+        # Demo mode — skip MT5 entirely, go straight to mock
+        if body.demo_mode:
+            connector.connect_mock(body.login, body.server)
+            return {
+                "success":   True,
+                "mock_mode": True,
+                "account":   connector.get_account_info(),
+            }
+        
+        # Real connection attempt    
         success = connector.connect(body.login, body.password, body.server)
+
         if not success:
-            raise HTTPException(status_code=401, detail="Connection failed. Check credentials.")
+            # This only happens on Windows when MT5 app is not running
+            raise HTTPException(
+                status_code=503,
+                detail="MetaTrader 5 is not running. Please open the MT5 application first, then try again."
+            )
+
         info = connector.get_account_info()
-        save_account_snapshot(       # inside connect(), after info = connector.get_account_info()
-    login=body.login, server=body.server,
-    balance=info.get("balance", 0),
-    equity=info.get("equity", 0),
-    mock_mode=connector.mock_mode,
-)
+
+        # Tell the frontend whether this is a real or mock session
         return {
-            "success":    True,
-            "mock_mode":  connector.mock_mode,
-            "account":    info,
+            "success":   True,
+            "mock_mode": connector.mock_mode,
+            "account":   info,
         }
+
     except HTTPException:
         raise
     except Exception as e:

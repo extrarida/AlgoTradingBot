@@ -177,25 +177,43 @@ class MT5Connector:
         """
         Connect to MT5 broker.
 
-        Falls back to mock mode automatically if:
-          - The MetaTrader5 package is not installed....
-          - The MT5 application is not running on this machine....
+        Returns:
+            True  — connected (real or mock)
+            False — MT5 is installed but not running (user must open it)
+
+        Sets self._force_mock = True if login credentials are not recognised
+        by the broker, allowing mock mode as a fallback for demo/testing.
         """
-        # Case 1: Package not installed (Mac/Linux)
+
+        # Case 1: Package not installed (Mac/Linux) — always mock
         if not _MT5_AVAILABLE:
             logger.info("[MOCK] MT5 package not found. Using mock mode.")
             self._session = MT5Session(
                 login=login, server=server, connected=True,
                 account_info=self._mock_account(login, server),
             )
+            self._force_mock = True
             return True
 
-        # Case 2: Package installed but MT5 app not running (Windows without MT5 open)
+        # Case 2: Package installed — try to find the running MT5 app
         if not _mt5.initialize():
+            # MT5 is installed but NOT running — this is an error, not a fallback
+            # We return False so the UI can show a proper error message
             logger.warning(
-                "MT5 initialize() failed: %s — falling back to MOCK mode.",
+                "MT5 initialize() failed: %s — MT5 app is not running.",
                 _mt5.last_error()
             )
+            return False
+
+        # Case 3: MT5 is running — attempt real login with provided credentials
+        if not _mt5.login(login, password=password, server=server):
+            logger.warning(
+                "MT5 login failed for account %s — credentials not recognised. "
+                "Falling back to mock mode.",
+                login
+            )
+            _mt5.shutdown()
+            # Credentials were wrong/fake — fall back to mock
             self._force_mock = True
             self._session = MT5Session(
                 login=login, server=server, connected=True,
@@ -203,21 +221,33 @@ class MT5Connector:
             )
             return True
 
-        # Case 3: MT5 is running — attempt real login
-        if not _mt5.login(login, password=password, server=server):
-            logger.error("MT5 login failed: %s", _mt5.last_error())
-            _mt5.shutdown()
-            return False
-
+        # Case 4: Real login succeeded — use real MT5 data
         info = _mt5.account_info()._asdict()
         self._session = MT5Session(
             login=login, server=server,
             connected=True, account_info=info
         )
-        logger.info("MT5 connected – balance=%.2f equity=%.2f",
-                    info.get("balance", 0), info.get("equity", 0))
+        self._force_mock = False
+        logger.info(
+            "MT5 connected (REAL) — login=%s balance=%.2f equity=%.2f",
+            login, info.get("balance", 0), info.get("equity", 0)
+        )
         return True
-
+    
+    #Explicit demo mode
+    def connect_mock(self, login: int = 0, server: str = "Demo") -> bool:
+        """
+        Explicitly connect in mock mode regardless of platform or credentials.
+        Used when user selects Demo Mode on the login page.
+        """
+        self._force_mock = True
+        self._session = MT5Session(
+            login=login, server=server, connected=True,
+            account_info=self._mock_account(login, server),
+        )
+        logger.info("[MOCK] Demo mode explicitly selected by user.")
+        return True
+    
     def disconnect(self) -> None:
         """Disconnect from MT5 and reset all state."""
         if not self.mock_mode and self._session and self._session.connected:
