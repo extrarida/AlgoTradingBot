@@ -26,6 +26,77 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
+# ── Optional Alpha Vantage API fallback ───────────────────────────────────────
+# Used as an additional web API price source when MT5 is not connected.
+# Get a free key at: https://www.alphavantage.co/support/#api-key
+import requests
+import os
+
+ALPHA_VANTAGE_KEY = os.getenv("ALPHA_VANTAGE_API_KEY", "")
+
+def get_price_from_alphavantage(symbol: str) -> dict:
+    """
+    Fetch latest bid/ask price from Alpha Vantage web API.
+    This is the external web API integration.
+    Only called when MT5 is not connected.
+    
+    Args:
+        symbol: Trading pair e.g. 'EURUSD', 'GBPUSD'
+    
+    Returns:
+        dict with bid, ask, price keys or empty dict if failed.
+    
+    API Docs: https://www.alphavantage.co/documentation/
+    """
+    if not ALPHA_VANTAGE_KEY:
+        logger.warning("Alpha Vantage API key not set in .env file.")
+        return {}
+
+    # Alpha Vantage uses FROM/TO currency format
+    # e.g. EURUSD → from_currency=EUR, to_currency=USD
+    if len(symbol) == 6:
+        from_currency = symbol[:3]   # e.g. EUR
+        to_currency   = symbol[3:]   # e.g. USD
+    else:
+        logger.warning("Symbol format not supported by Alpha Vantage: %s", symbol)
+        return {}
+
+    try:
+        url = (
+            f"https://www.alphavantage.co/query"
+            f"?function=CURRENCY_EXCHANGE_RATE"
+            f"&from_currency={from_currency}"
+            f"&to_currency={to_currency}"
+            f"&apikey={ALPHA_VANTAGE_KEY}"
+        )
+        response = requests.get(url, timeout=10)
+        data = response.json()
+
+        rate_data = data.get("Realtime Currency Exchange Rate", {})
+        if not rate_data:
+            logger.warning("Alpha Vantage returned no data for %s", symbol)
+            return {}
+
+        price = float(rate_data.get("5. Exchange Rate", 0))
+        bid   = float(rate_data.get("8. Bid Price", price))
+        ask   = float(rate_data.get("9. Ask Price", price))
+
+        logger.info(
+            "[Alpha Vantage API] %s → bid=%.5f ask=%.5f", symbol, bid, ask
+        )
+
+        return {
+            "bid":    round(bid,   5),
+            "ask":    round(ask,   5),
+            "last":   round(price, 5),
+            "volume": 0,
+            "time":   0,
+            "source": "alpha_vantage_api",
+        }
+
+    except Exception as e:
+        logger.error("Alpha Vantage API error for %s: %s", symbol, e)
+        return {}
 # ── Try real MT5 package ──────────────────────────────────────────────────────
 try:
     import MetaTrader5 as _mt5 # type: ignore
@@ -187,12 +258,26 @@ class MT5Connector:
         return df
 
     def get_tick(self, symbol: str) -> dict:
-        """Return latest bid/ask tick."""
-        if self.mock_mode:
-            return self._mock_tick(symbol)
-
+    """
+    Return latest bid/ask tick.
+    Priority:
+      1. MT5 live data (if connected)
+      2. Alpha Vantage web API (if API key set in .env)
+      3. Mock data (fallback)
+    """
+    # Priority 1 — Real MT5 data
+    if _MT5_AVAILABLE and self.is_connected:
         t = _mt5.symbol_info_tick(symbol)
         return t._asdict() if t else {}
+
+    # Priority 2 — Alpha Vantage web API
+    av_data = get_price_from_alphavantage(symbol)
+    if av_data:
+        return av_data
+
+    # Priority 3 — Mock data fallback
+    logger.info("[Mock] Using synthetic price for %s", symbol)
+    return self._mock_tick(symbol)
 
     def get_symbols(self) -> List[str]:
         """Return list of available trading symbols."""
