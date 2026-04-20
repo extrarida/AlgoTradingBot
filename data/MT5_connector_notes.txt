@@ -1,0 +1,84 @@
+FILE: data/mt5_connector.py
+LOCATION: data/ folder
+
+WHAT IT DOES:
+This file is the direct bridge between your bot and the MetaTrader 5
+trading platform. Every price the bot sees and every trade it places
+goes through this file.
+
+It handles three main things:
+  1. Logging in to MT5 with your broker credentials
+  2. Fetching live prices and historical candle data
+  3. Sending buy/sell orders to the broker
+
+HOW IT HELPS:
+It hides all the complexity of talking to MT5. The rest of the bot
+simply calls get_tick() or send_order() without needing to know
+anything about how MT5 works internally.
+
+PRICE PRIORITY SYSTEM:
+When the bot needs a price, it tries sources in this order:
+
+  1. MT5 Live Data
+     MT5 desktop app is open and logged in.
+     Gets real live prices directly from your broker.
+     Most accurate and real-time.
+
+  2. Alpha Vantage Web API
+     MT5 is not available but API key is set in .env file.
+     Fetches prices from the internet.
+     Slight delay on free plan but works without MT5.
+     Get a free key at: https://www.alphavantage.co/support/#api-key
+
+  3. Mock/Fake Prices
+     Neither MT5 nor API key is available.
+     Generates synthetic prices using random movement.
+     Used for testing only. No real money involved.
+
+FOUR CONNECTION CASES:
+  Case 1 - MT5 package not installed (Mac/Linux):
+           Always uses mock mode automatically.
+
+  Case 2 - MT5 installed but desktop app is closed:
+           Returns an error. User must open MT5 first.
+
+  Case 3 - MT5 open but wrong login credentials:
+           Falls back to mock mode so bot can still run.
+
+  Case 4 - MT5 open and credentials correct:
+           Uses real live data from the broker.
+
+KEY FUNCTIONS:
+  connect()            Log in to MT5 with your account details
+  disconnect()         Log out and clear the session
+  get_tick()           Get the latest live bid/ask price
+  get_rates()          Get historical candle data (OHLCV)
+  get_symbols()        Get list of all available trading pairs
+  get_account_info()   Get balance, equity, margin details
+  get_open_positions() Get all currently open trades
+  send_order()         Place a buy or sell trade
+  close_position()     Close an existing open trade
+
+MOCK MODE:
+When running in mock mode, the bot generates fake prices and
+simulates trades without any real money. The dashboard still
+works normally and shows fake positions and a $10,000 demo balance.
+This is useful for testing and development.
+
+HOW TO ACTIVATE REAL LIVE TRADING:
+  Step 1 - Install MetaTrader 5 desktop from: https://www.metatrader5.com
+  Step 2 - Open MT5 and log in with your Exness demo account
+  Step 3 - Add to your .env file:
+             MT5_LOGIN=260712744
+             MT5_PASSWORD=yourpassword
+             MT5_SERVER=Exness-MT5Trial15
+  Step 4 - Run the bot: python main.py
+  Step 5 - The terminal will show: MT5 connected (REAL)
+
+ALPHA VANTAGE API SETUP:
+  Step 1 - Go to https://www.alphavantage.co/support/#api-key
+  Step 2 - Sign up and get a free API key
+  Step 3 - Add to your .env file:
+             ALPHA_VANTAGE_API_KEY=your_key_here
+  Step 4 - When MT5 is closed, the bot will automatically use
+           this API for prices instead of mock data

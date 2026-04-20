@@ -1,0 +1,66 @@
+FILE: data/data_fetcher.py
+LOCATION: data/ folder
+
+WHAT IT DOES:
+This file sits between the trading strategies and the MT5 connector.
+All 40 strategies get their price data from this file — they never
+talk to MT5 directly.
+
+It also has a caching system that stores recently fetched data in
+memory so the same price data is not fetched from MT5 multiple
+times in the same cycle.
+
+HOW IT HELPS:
+Without this file, each of the 40 strategies would make its own
+separate call to MT5 every second. That would be 40 calls per second
+which would slow everything down significantly.
+
+With caching, MT5 is called once and all 40 strategies share the
+same data. This makes the bot much faster and more efficient.
+
+KEY FUNCTIONS:
+
+  get_ohlcv(symbol, timeframe, count):
+    Fetches historical candle data for a symbol.
+    Example: get_ohlcv('EURUSD', 'M15', 500)
+    Returns the last 500 fifteen-minute candles for EURUSD.
+    Columns returned: open, high, low, close, tick_volume
+    Each row represents one candle on the chart.
+
+  get_tick(symbol):
+    Gets the current live bid and ask price for a symbol.
+    Example: get_tick('EURUSD')
+    Returns: {'bid': 1.08432, 'ask': 1.08445}
+    This is the price you see moving on the chart right now.
+
+  get_multi_symbol(symbols, timeframe, count):
+    Fetches candle data for multiple symbols in one call.
+    Example: get_multi_symbol(['EURUSD', 'GBPUSD', 'USDJPY'])
+    Returns a dictionary with each symbol's data.
+    Useful when the bot is monitoring multiple currency pairs.
+
+  invalidate_cache(symbol):
+    Clears stored data so fresh data is fetched next time.
+    Pass a symbol name to clear only that symbol.
+    Call with no argument to clear everything.
+
+  cache_size():
+    Returns how many symbol/timeframe combinations are stored.
+    Useful for checking if the cache is working.
+
+CACHING EXPLAINED:
+  When use_cache=True is passed to get_ohlcv():
+  - First call: fetches from MT5 and stores in memory
+  - Second call with same symbol/timeframe: returns stored data
+  - No second MT5 call needed, much faster
+  - Call invalidate_cache() to force a fresh fetch
+
+TIMEFRAMES AVAILABLE:
+  M1   = 1 minute candles
+  M5   = 5 minute candles
+  M15  = 15 minute candles (default used by strategies)
+  M30  = 30 minute candles
+  H1   = 1 hour candles
+  H4   = 4 hour candles
+  D1   = Daily candles
+  W1   = Weekly candles
