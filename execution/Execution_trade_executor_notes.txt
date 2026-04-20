@@ -1,0 +1,42 @@
+FILE: execution/trade_executor.py
+LOCATION: execution/ folder
+
+WHAT IT DOES:
+This is the final step before a real trade is placed. It takes an
+approved signal from the strategy engine, calculates the exact entry
+price, stop loss, and take profit levels, and sends the order to MT5.
+
+HOW IT HELPS:
+It translates a simple BUY or SELL decision into a complete, properly
+formatted trade order that MT5 can execute. It also records the result
+so the dashboard can show trade history.
+
+HOW IT WORKS STEP BY STEP:
+  1. Check that MT5 is connected. If not, reject immediately.
+  2. Get the current live bid/ask price for the symbol.
+  3. Calculate pip size (0.0001 for most pairs, 0.01 for JPY pairs).
+  4. For BUY: use the ASK price as entry, set SL below, TP above.
+     For SELL: use the BID price as entry, set SL above, TP below.
+  5. Build the complete order package with all required MT5 fields.
+  6. Send the order to MT5 via the connector.
+  7. If MT5 confirms success (code 10009), record the trade.
+  8. Return a full result including order ID, price, SL, TP, and status.
+
+ORDER STATES:
+  - PENDING: Order created but not yet sent.
+  - SENT: Order sent to MT5.
+  - FILLED: Trade successfully executed by the broker.
+  - REJECTED: Trade was blocked (MT5 error or risk check failed).
+  - CANCELLED: Signal was NONE so no order was needed.
+
+KEY INFORMATION IN TRADE RESULT:
+  - success: True or False
+  - order_id: Unique order number from the broker
+  - price: The price the trade was executed at
+  - sl: Stop loss price level
+  - tp: Take profit price level
+  - state: Current order status
+
+IMPORTANT:
+In mock mode, no real money moves. The executor simulates the trade
+and returns a fake success result so the dashboard can display it.

@@ -1,0 +1,37 @@
+FILE: services/strategy_engine.py
+LOCATION: services/ folder
+
+WHAT IT DOES:
+This is the brain of the bot. It runs all 40 trading strategies at the
+same time on the latest price data, counts how many voted BUY versus
+SELL, and decides whether to generate a trading signal.
+
+HOW IT HELPS:
+No single strategy alone triggers a trade. The engine requires multiple
+strategies to agree before acting. This significantly reduces false
+signals and bad trades.
+
+HOW THE VOTING WORKS:
+1. All 40 strategies run on the current price data.
+2. Each strategy returns BUY, SELL, or NONE.
+3. The engine counts the votes on each side.
+4. If BUY votes >= 3 AND average confidence >= 60%, it signals BUY.
+5. If SELL votes >= 3 AND average confidence >= 60%, it signals SELL.
+6. Otherwise it signals NONE and no trade is placed.
+
+KEY OUTPUTS:
+  - final_signal: BUY, SELL, or NONE
+  - confidence: Average confidence score of the winning strategies
+  - buy_votes: How many strategies voted BUY
+  - sell_votes: How many strategies voted SELL
+  - none_votes: How many strategies voted NONE
+  - top_strategies: The top 5 most confident strategies that voted
+
+EXAMPLE:
+  25 strategies vote BUY with 72% average confidence.
+  15 strategies vote SELL.
+  Result: BUY signal generated (25 votes > minimum 3, 72% > 60%).
+
+SETTINGS YOU CAN CHANGE (in .env file):
+  MIN_STRATEGY_VOTES=3      (how many must agree)
+  CONFIDENCE_THRESHOLD=0.60 (minimum confidence required)
