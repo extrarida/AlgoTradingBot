@@ -1,9 +1,12 @@
 """
 strategies/buy/__init__.py
 ──────────────────────────
-All 20 buy strategies. Each is a self-contained, independently
-testable class. The ALL_BUY_STRATEGIES list at the bottom is the
-registry used by the strategy engine.
+This file contains all 20 BUY strategies.
+Each strategy is a separate class that looks at price data in a
+different way and decides whether to vote BUY or do nothing.
+All 20 run at the same time on every price update.
+The ALL_BUY_STRATEGIES list at the bottom registers all of them
+so the strategy engine can find and run them automatically.
 """
 
 from __future__ import annotations
@@ -18,8 +21,11 @@ from indicators.atr       import compute_atr, compute_stochastic, compute_adx, c
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# B01 — RSI Oversold Bounce
+# RSI measures if price has fallen too far too fast (scale 0-100).
+# When RSI drops below 30 (oversold) then bounces back above 33,
+# it signals buyers are returning — vote BUY.
 class RSIOversoldBounce(BaseStrategy):
-    """B01 – RSI dips below oversold threshold then recovers."""
     name = "B01_RSIOversoldBounce"; category = "swing"
     def __init__(self, period=14, oversold=30.0, recover=33.0):
         self.period, self.oversold, self.recover = period, oversold, recover
@@ -31,8 +37,11 @@ class RSIOversoldBounce(BaseStrategy):
         return self._no_signal()
 
 
+# B02 — MACD Bullish Crossover
+# MACD tracks the difference between two moving averages.
+# When the fast line crosses ABOVE the slow line, short-term
+# momentum is turning bullish — vote BUY.
 class MACDBullishCrossover(BaseStrategy):
-    """B02 – MACD line crosses above signal line."""
     name = "B02_MACDBullishCrossover"; category = "swing"
     def __init__(self, fast=12, slow=26, signal=9):
         self.fast, self.slow, self.signal = fast, slow, signal
@@ -44,8 +53,11 @@ class MACDBullishCrossover(BaseStrategy):
         return self._no_signal()
 
 
+# B03 — EMA Bullish Crossover
+# Two moving averages at different speeds are compared.
+# When the faster one crosses ABOVE the slower one,
+# the short-term trend has turned upward — vote BUY.
 class EMABullishCrossover(BaseStrategy):
-    """B03 – Fast EMA crosses above slow EMA."""
     name = "B03_EMABullishCrossover"; category = "swing"
     def __init__(self, fast=9, slow=21):
         self.fast, self.slow = fast, slow
@@ -56,8 +68,11 @@ class EMABullishCrossover(BaseStrategy):
         return self._no_signal()
 
 
+# B04 — Bollinger Band Lower Touch Buy
+# Bollinger Bands mark statistically extreme price levels.
+# When price touches the lower band (very oversold) then
+# closes back inside, it signals a bounce upward — vote BUY.
 class BollingerLowerTouchBuy(BaseStrategy):
-    """B04 – Price touches lower Bollinger Band then closes back inside."""
     name = "B04_BollingerLowerTouch"; category = "swing"
     def __init__(self, period=20, std_dev=2.0):
         self.period, self.std_dev = period, std_dev
@@ -70,8 +85,11 @@ class BollingerLowerTouchBuy(BaseStrategy):
         return self._no_signal()
 
 
+# B05 — Price Above 200 EMA Buy
+# The 200 EMA defines the long-term trend direction.
+# If price is above it (uptrend) and RSI dips below 40 (pullback),
+# it is a safe "buy the dip in an uptrend" setup — vote BUY.
 class PriceAbove200EMABuy(BaseStrategy):
-    """B05 – Price is above 200 EMA (uptrend) with RSI pullback."""
     name = "B05_PriceAbove200EMA"; category = "swing"
     def __init__(self, ema_period=200, rsi_threshold=40.0):
         self.ema_period, self.rsi_threshold = ema_period, rsi_threshold
@@ -83,8 +101,11 @@ class PriceAbove200EMABuy(BaseStrategy):
         return self._no_signal()
 
 
+# B06 — Stochastic Oversold Buy
+# Stochastic compares close price to recent high/low range.
+# When both lines are below 20 (oversold) and the fast line
+# crosses above the slow line, momentum is turning up — vote BUY.
 class StochasticOversoldBuy(BaseStrategy):
-    """B06 – Stochastic %K crosses above %D in oversold zone."""
     name = "B06_StochasticOversoldBuy"; category = "scalp"
     def __init__(self, k=14, d=3, threshold=20.0):
         self.k, self.d, self.threshold = k, d, threshold
@@ -96,8 +117,11 @@ class StochasticOversoldBuy(BaseStrategy):
         return self._no_signal()
 
 
+# B07 — Inside Bar Breakout Buy
+# An inside bar is when a candle stays within the range of the
+# previous candle — showing indecision. When price then breaks
+# above the mother bar high, buyers have won — vote BUY.
 class InsideBarBreakoutBuy(BaseStrategy):
-    """B07 – Inside bar pattern with upside breakout."""
     name = "B07_InsideBarBreakoutBuy"; category = "scalp"
     def evaluate(self, df):
         if len(df) < 3: return self._no_signal("insufficient data")
@@ -109,15 +133,18 @@ class InsideBarBreakoutBuy(BaseStrategy):
         return self._no_signal()
 
 
+# B08 — Hammer Candle Buy
+# A hammer has a small body near the top and a long lower shadow.
+# It shows sellers pushed price down hard but buyers pushed it
+# all the way back up — strong rejection of lower prices — vote BUY.
 class HammerCandleBuy(BaseStrategy):
-    """B08 – Hammer: small body, long lower shadow."""
     name = "B08_HammerCandle"; category = "swing"
     def __init__(self, body_ratio=0.3, shadow_ratio=2.0):
         self.body_ratio, self.shadow_ratio = body_ratio, shadow_ratio
     def evaluate(self, df):
         if len(df) < 2: return self._no_signal()
         r = df.iloc[-1]
-        body = abs(r["close"] - r["open"])
+        body  = abs(r["close"] - r["open"])
         total = r["high"] - r["low"]
         lower = min(r["open"], r["close"]) - r["low"]
         upper = r["high"] - max(r["open"], r["close"])
@@ -128,8 +155,11 @@ class HammerCandleBuy(BaseStrategy):
         return self._no_signal()
 
 
+# B09 — ADX Trend Pullback Buy
+# ADX measures how strong a trend is (above 25 = strong trend).
+# When ADX confirms a strong uptrend and price pulls back to the
+# EMA then bounces, it is a safe trend entry — vote BUY.
 class ADXTrendPullbackBuy(BaseStrategy):
-    """B09 – Strong ADX uptrend with price pulling back to EMA."""
     name = "B09_ADXTrendPullbackBuy"; category = "swing"
     def __init__(self, adx_period=14, adx_threshold=25, ema_period=21):
         self.adx_period, self.adx_threshold, self.ema_period = adx_period, adx_threshold, ema_period
@@ -143,8 +173,11 @@ class ADXTrendPullbackBuy(BaseStrategy):
         return self._no_signal()
 
 
+# B10 — VWAP Bounce Buy
+# VWAP is the volume-weighted average price — where most trading
+# happened today. Big institutions watch this level. When price
+# dips to VWAP from above and holds, buyers step in — vote BUY.
 class VWAPBounceBuy(BaseStrategy):
-    """B10 – Price bounces off VWAP from above (intraday scalp)."""
     name = "B10_VWAPBounceBuy"; category = "scalp"
     def __init__(self, tolerance=0.0005):
         self.tolerance = tolerance
@@ -161,8 +194,11 @@ class VWAPBounceBuy(BaseStrategy):
         return self._no_signal()
 
 
+# B11 — Triple EMA Trend Buy
+# Three EMAs at different speeds all stacked in order (fast > mid > slow)
+# means all timeframes agree the trend is up. When price pulls back
+# to the fastest EMA in this aligned structure — vote BUY.
 class TripleEMABuy(BaseStrategy):
-    """B11 – Triple EMA bullish alignment with pullback to fast EMA."""
     name = "B11_TripleEMATrend"; category = "swing"
     def __init__(self, fast=5, mid=13, slow=34):
         self.fast, self.mid, self.slow = fast, mid, slow
@@ -177,8 +213,11 @@ class TripleEMABuy(BaseStrategy):
         return self._no_signal()
 
 
+# B12 — Bullish Engulfing Buy
+# A bearish candle is completely swallowed by the next bullish candle.
+# This shows buyers overwhelmed all previous selling in one move —
+# a strong reversal signal — vote BUY.
 class BullishEngulfingBuy(BaseStrategy):
-    """B12 – Bullish engulfing candlestick pattern."""
     name = "B12_BullishEngulfing"; category = "swing"
     def evaluate(self, df):
         if len(df) < 2: return self._no_signal()
@@ -189,8 +228,11 @@ class BullishEngulfingBuy(BaseStrategy):
         return self._no_signal()
 
 
+# B13 — Bollinger Squeeze Breakout Buy
+# When Bollinger Bands narrow (squeeze), volatility is compressed.
+# When price then breaks above the upper band, the compressed energy
+# releases upward — the start of a strong move — vote BUY.
 class BollingerSqueezeBuy(BaseStrategy):
-    """B13 – Bollinger squeeze releases upward."""
     name = "B13_BollingerSqueezeBuy"; category = "swing"
     def __init__(self, period=20, squeeze_threshold=0.05):
         self.period, self.squeeze_threshold = period, squeeze_threshold
@@ -203,8 +245,11 @@ class BollingerSqueezeBuy(BaseStrategy):
         return self._no_signal()
 
 
+# B14 — Higher Lows Pattern Buy
+# Every bar is making a higher high and higher low than the one before.
+# This is the textbook definition of an uptrend — confirmed momentum
+# across multiple bars — vote BUY.
 class HigherLowsBuy(BaseStrategy):
-    """B14 – Consecutive higher highs and higher lows (uptrend structure)."""
     name = "B14_HigherLowsPattern"; category = "swing"
     def __init__(self, lookback=5):
         self.lookback = lookback
@@ -218,14 +263,17 @@ class HigherLowsBuy(BaseStrategy):
         return self._no_signal()
 
 
+# B15 — RSI Bullish Divergence Buy
+# Price makes a lower low but RSI makes a higher low.
+# This means sellers are getting weaker even as price falls —
+# hidden strength that typically precedes a reversal — vote BUY.
 class RSIBullishDivergenceBuy(BaseStrategy):
-    """B15 – Price makes lower low but RSI makes higher low."""
     name = "B15_RSIBullishDivergence"; category = "swing"
     def __init__(self, period=14, lookback=20):
         self.period, self.lookback = period, lookback
     def evaluate(self, df):
         if len(df) < self.lookback + self.period: return self._no_signal()
-        rsi = compute_rsi(df["close"], self.period)
+        rsi   = compute_rsi(df["close"], self.period)
         price = df["close"]
         low_idx = price.iloc[-self.lookback:].idxmin()
         if price.iloc[-1] <= price[low_idx] and rsi.iloc[-1] > rsi[low_idx] and rsi.iloc[-1] < 40:
@@ -233,8 +281,11 @@ class RSIBullishDivergenceBuy(BaseStrategy):
         return self._no_signal()
 
 
+# B16 — Morning Star Buy
+# Three candles tell the story: Bar 1 strong selling, Bar 2 indecision,
+# Bar 3 strong buying that closes above Bar 1 midpoint.
+# This is a complete seller exhaustion pattern — vote BUY.
 class MorningStarBuy(BaseStrategy):
-    """B16 – Three-candle morning star reversal pattern."""
     name = "B16_MorningStar"; category = "swing"
     def evaluate(self, df):
         if len(df) < 3: return self._no_signal()
@@ -247,8 +298,11 @@ class MorningStarBuy(BaseStrategy):
         return self._no_signal()
 
 
+# B17 — Momentum Breakout Buy
+# Price breaks to a new 20-bar high AND volume is above average.
+# Volume confirmation means institutional buyers are participating —
+# the breakout is genuine not a fake-out — vote BUY.
 class MomentumBreakoutBuy(BaseStrategy):
-    """B17 – Volume surge + price breaks 20-bar high."""
     name = "B17_MomentumBreakout"; category = "scalp"
     def __init__(self, vol_mult=1.5, lookback=20):
         self.vol_mult, self.lookback = vol_mult, lookback
@@ -262,8 +316,11 @@ class MomentumBreakoutBuy(BaseStrategy):
         return self._no_signal()
 
 
+# B18 — Support Bounce Buy
+# Calculates where price has historically found support (10th percentile low).
+# When price returns to this zone and starts rising, buyers are stepping
+# in at a proven level — market memory — vote BUY.
 class SupportBounceBuy(BaseStrategy):
-    """B18 – Price bouncing off historical support level."""
     name = "B18_SupportBounce"; category = "swing"
     def __init__(self, lookback=50, tolerance=0.002):
         self.lookback, self.tolerance = lookback, tolerance
@@ -277,8 +334,11 @@ class SupportBounceBuy(BaseStrategy):
         return self._no_signal()
 
 
+# B19 — CCI Oversold Buy
+# CCI measures how far price has deviated from its statistical average.
+# When CCI drops below -100 (extreme low) then crosses back above it,
+# the extreme is ending and price reverts upward — vote BUY.
 class CCIOversoldBuy(BaseStrategy):
-    """B19 – CCI crosses back above -100 from oversold territory."""
     name = "B19_CCIOversoldBuy"; category = "swing"
     def __init__(self, period=20, threshold=-100.0):
         self.period, self.threshold = period, threshold
@@ -290,8 +350,11 @@ class CCIOversoldBuy(BaseStrategy):
         return self._no_signal()
 
 
+# B20 — Golden Cross Buy
+# The most famous long-term bullish signal in trading.
+# When the 50 EMA (medium-term) crosses ABOVE the 200 EMA (long-term),
+# it signals a major uptrend is starting — vote BUY.
 class GoldenCrossBuy(BaseStrategy):
-    """B20 – 50 EMA crosses above 200 EMA (Golden Cross)."""
     name = "B20_GoldenCross"; category = "swing"
     def __init__(self, fast=50, slow=200):
         self.fast, self.slow = fast, slow
@@ -304,7 +367,11 @@ class GoldenCrossBuy(BaseStrategy):
         return self._no_signal()
 
 
-# ── Registry ──────────────────────────────────────────────────────────────────
+# ── Strategy Registry ─────────────────────────────────────────────────────────
+# This list registers all 20 buy strategies in one place.
+# The strategy engine imports ALL_BUY_STRATEGIES and runs every
+# strategy in this list on every price update automatically.
+# To add a new strategy, create the class above and add it here.
 ALL_BUY_STRATEGIES: list[BaseStrategy] = [
     RSIOversoldBounce(), MACDBullishCrossover(), EMABullishCrossover(),
     BollingerLowerTouchBuy(), PriceAbove200EMABuy(), StochasticOversoldBuy(),
