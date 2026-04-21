@@ -178,35 +178,51 @@ async def get_price(symbol: str):
 
 @app.get("/api/signal/{symbol}")
 async def get_signal(symbol: str, timeframe: str = "M15"):
-    """
-    Run all 40 strategies and return the aggregated signal.
-    Called by the dashboard when user selects a symbol.
-    """
     if not connector.is_connected:
         raise HTTPException(status_code=401, detail="Not connected")
     try:
-        df     = fetcher.get_ohlcv(symbol, timeframe, 500)
+        df = fetcher.get_ohlcv(symbol, timeframe, 500)
+
+        if df.empty:
+            # Return a valid NONE signal instead of crashing
+            return {
+                "symbol":          symbol,
+                "final_signal":    "NONE",
+                "confidence":      0,
+                "buy_votes":       0,
+                "sell_votes":      0,
+                "none_votes":      0,
+                "total_evaluated": 0,
+                "top_strategies":  [],
+                "note":            "No data available for this symbol"
+            }
+
         result = engine.evaluate(df, symbol)
+
+        # Save to database
         save_signal(
-    symbol=symbol, timeframe=timeframe,            # inside get_signal(), after result = engine.evaluate(...)
-    final_signal=result.final_signal,
-    confidence=result.confidence,
-    buy_votes=result.buy_votes,
-    sell_votes=result.sell_votes,
-    none_votes=result.none_votes,
-    total_evaluated=result.total_evaluated,
-    top_strategies=[{"name": s.strategy, "confidence": s.confidence, "reason": s.reason}
-                    for s in result.top_strategies],
-)                            
+            symbol=symbol, timeframe=timeframe,
+            final_signal=result.final_signal,
+            confidence=result.confidence,
+            buy_votes=result.buy_votes,
+            sell_votes=result.sell_votes,
+            none_votes=result.none_votes,
+            total_evaluated=result.total_evaluated,
+            top_strategies=[
+                {"name": s.strategy, "confidence": s.confidence, "reason": s.reason}
+                for s in result.top_strategies
+            ],
+        )
+
         return {
-            "symbol":         symbol,
-            "final_signal":   result.final_signal,
-            "confidence":     round(result.confidence * 100, 1),
-            "buy_votes":      result.buy_votes,
-            "sell_votes":     result.sell_votes,
-            "none_votes":     result.none_votes,
+            "symbol":          symbol,
+            "final_signal":    result.final_signal,
+            "confidence":      round(result.confidence * 100, 1),
+            "buy_votes":       result.buy_votes,
+            "sell_votes":      result.sell_votes,
+            "none_votes":      result.none_votes,
             "total_evaluated": result.total_evaluated,
-            "top_strategies": [
+            "top_strategies":  [
                 {
                     "name":       s.strategy,
                     "confidence": round(s.confidence * 100, 1),
@@ -216,6 +232,7 @@ async def get_signal(symbol: str, timeframe: str = "M15"):
             ],
         }
     except Exception as e:
+        logger.error("Signal error for %s: %s", symbol, str(e), exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 

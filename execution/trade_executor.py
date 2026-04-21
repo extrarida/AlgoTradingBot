@@ -18,7 +18,7 @@ from typing import Optional
 # Import MT5 connection and order type constants
 from data.mt5_connector import (
     connector, TRADE_ACTION_DEAL, ORDER_TYPE_BUY,
-    ORDER_TYPE_SELL, ORDER_TIME_GTC, ORDER_FILLING_IOC, RETCODE_DONE,
+    ORDER_TYPE_SELL, ORDER_TIME_GTC, ORDER_FILLING_IOC, ORDER_FILLING_FOK, RETCODE_DONE,
 )
 # Import risk manager to record each trade toward the daily limit
 from execution.risk_manager import risk_manager
@@ -142,7 +142,7 @@ class TradeExecutor:
             "magic":        req.magic,            # Bot's unique ID number
             "comment":      req.comment,          # Label shown in MT5
             "type_time":    ORDER_TIME_GTC,       # Keep order open until cancelled
-            "type_filling": ORDER_FILLING_IOC,    # Fill as much as possible immediately
+            "type_filling": ORDER_FILLING_FOK,    # Fill as much as possible immediately
         }
 
         # Step 6 — Log what we are about to send (visible in terminal)

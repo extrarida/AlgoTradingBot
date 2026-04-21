@@ -138,6 +138,7 @@ ORDER_TYPE_BUY     = 0   # Buy order
 ORDER_TYPE_SELL    = 1   # Sell order
 ORDER_TIME_GTC     = 0   # Good Till Cancelled
 ORDER_FILLING_IOC  = 2   # Fill as much as possible immediately
+ORDER_FILLING_FOK  = 1
 RETCODE_DONE       = 10009  # MT5 success code meaning trade was executed
 
 
@@ -274,47 +275,58 @@ class MT5Connector:
     # ── Price and chart data methods ──────────────────────────────────────────
 
     def get_rates(self, symbol: str, timeframe: int, count: int = 500) -> pd.DataFrame:
-        """
-        Fetches historical OHLCV candle data for a symbol.
-        e.g. get_rates('EURUSD', Timeframe.M15, 500)
-        returns the last 500 15-minute candles for EURUSD.
-        Returns fake data if running in mock mode.
-        """
+        """Return OHLCV DataFrame indexed by UTC datetime."""
         if self.mock_mode:
             return self._mock_rates(symbol, count)
 
-        # Fetch real candle data from MT5
+        # Ensure the symbol is selected in MT5 Market Watch
+        # Real MT5 requires this before data can be fetched
+        if not _mt5.symbol_select(symbol, True):
+            logger.warning("Symbol %s not available in MT5, trying anyway...", symbol)
+
         rates = _mt5.copy_rates_from_pos(symbol, timeframe, 0, count)
-        if rates is None:
-            logger.warning("No rates for %s: %s", symbol, _mt5.last_error())
+
+        if rates is None or len(rates) == 0:
+            logger.warning(
+                "No rates returned for %s (timeframe=%s): %s",
+                symbol, timeframe, _mt5.last_error()
+            )
             return pd.DataFrame()
 
-        # Convert to a pandas DataFrame with datetime index
         df = pd.DataFrame(rates)
-        df["time"] = pd.to_datetime(df["time"], unit="s")
+        df["time"] = pd.to_datetime(df["time"], unit="s", utc=True)
         df.set_index("time", inplace=True)
-        return df
+        # Keep only the columns the strategies need
+        for col in ["open", "high", "low", "close", "tick_volume"]:
+            if col not in df.columns:
+                logger.error("Column '%s' missing from MT5 data for %s", col, symbol)
+                return pd.DataFrame()
+        return df[["open", "high", "low", "close", "tick_volume"]]
 
     def get_tick(self, symbol: str) -> dict:
-        """
-        Fetches the latest live bid/ask price for a symbol.
-        Tries 3 sources in order:
-          1. MT5 live data (real-time from broker)
-          2. Alpha Vantage web API (internet-based backup)
-          3. Mock/fake price (for testing only)
-        """
-        # Priority 1 — Real MT5 live price from the broker
+        """Return latest bid/ask tick."""
         if _MT5_AVAILABLE and self.is_connected and not self.mock_mode:
-            t = _mt5.symbol_info_tick(symbol)
-            return t._asdict() if t else {}
+            # Check connection is still alive
+            if _mt5.terminal_info() is None:
+                logger.warning("MT5 connection lost — attempting reconnect...")
+                self._session = None
+                return {}
 
-        # Priority 2 — Alpha Vantage web API (if key is set in .env)
+            # Select symbol first
+            _mt5.symbol_select(symbol, True)
+            t = _mt5.symbol_info_tick(symbol)
+            if t is not None:
+                info = t._asdict()
+                spread = round(info.get("ask", 0) - info.get("bid", 0), 5)
+                info["spread"] = spread
+                return info
+        return {}
+ 
+        # Alpha Vantage fallback
         av_data = get_price_from_alphavantage(symbol)
         if av_data:
             return av_data
 
-        # Priority 3 — Generate a fake price for testing
-        logger.info("[Mock] Using synthetic price for %s", symbol)
         return self._mock_tick(symbol)
 
     def get_symbols(self) -> List[str]:

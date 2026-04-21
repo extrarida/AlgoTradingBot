@@ -373,7 +373,7 @@ async function loadAccount() {
     document.getElementById('balance').textContent    = '$' + Number(data.balance).toFixed(2);
     document.getElementById('equity').textContent     = '$' + Number(data.equity).toFixed(2);
     document.getElementById('profit').textContent     = (data.profit >= 0 ? '+' : '') + Number(data.profit).toFixed(2) + ' float P&L';
-    document.getElementById('freeMargin').textContent = '$' + Number(data.free_margin).toFixed(2);
+    document.getElementById('freeMargin').textContent = '$' + Number(data.free_margin ?? data.margin_free ?? 0).toFixed(2);
     document.getElementById('margin').textContent     = '$' + Number(data.margin).toFixed(2);
     document.getElementById('server').textContent     = data.server || '—';
     document.getElementById('login').textContent      = data.login  || '—';
@@ -543,13 +543,16 @@ async function loadChart(tf = 'M15') {
       },
       options: {
         responsive: true,
-        plugins:    { legend: { display: false } },
+        plugins: { legend: { display: false } },
         scales: {
           x: {
             ticks: { color:'#4a6080', font:{ family:'IBM Plex Mono', size:10 }, maxTicksLimit:8 },
             grid:  { color:'rgba(36,52,71,0.6)' }
           },
           y: {
+            // Set min/max from actual data so chart doesn't start from 0
+            min: Math.min(...closes) * 0.9995,
+            max: Math.max(...closes) * 1.0005,
             ticks: { color:'#4a6080', font:{ family:'IBM Plex Mono', size:10 } },
             grid:  { color:'rgba(36,52,71,0.6)' }
           }
@@ -561,29 +564,53 @@ async function loadChart(tf = 'M15') {
 
 // ── Trade ─────────────────────────────────────────────────────
 async function placeTrade(direction) {
-  const body = {
-    symbol:  document.getElementById('symbol').value,
-    signal:  direction,
-    lot:     parseFloat(document.getElementById('lot').value),
-    sl_pips: parseInt(document.getElementById('slPips').value),
-    tp_pips: parseInt(document.getElementById('tpPips').value),
-  };
+  const symbol  = document.getElementById('symbol').value;
+  const lot     = parseFloat(document.getElementById('lot').value);
+  const slPips  = parseInt(document.getElementById('slPips').value);
+  const tpPips  = parseInt(document.getElementById('tpPips').value);
+
+  if (!symbol || isNaN(lot) || isNaN(slPips) || isNaN(tpPips)) {
+    toast('Please fill in all trade fields', 'error');
+    return;
+  }
+
+  const body = { symbol, signal: direction, lot, sl_pips: slPips, tp_pips: tpPips };
+
   try {
     const res  = await fetch(`${API}/api/trade`, {
-      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(body)
     });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      toast(err.detail || `Server error ${res.status}`, 'error');
+      return;
+    }
+
     const data = await res.json();
-    if (data.success) {
-      toast(`${direction} placed · #${data.order_id} · ${fmtPrice(data.price)}`);
+
+    if (data && data.success) {
+      const price   = data.price   != null ? Number(data.price).toFixed(5)  : '—';
+      const orderId = data.order_id != null ? data.order_id : '—';
+      const sl      = data.sl      != null ? Number(data.sl).toFixed(5)     : '—';
+      const tp      = data.tp      != null ? Number(data.tp).toFixed(5)     : '—';
+      toast(`${direction} placed · #${orderId} · ${price}`);
       document.getElementById('tradeResult').innerHTML =
-        `<span style="color:var(--profit)">✓ ${direction}</span> · #${data.order_id} · @ ${fmtPrice(data.price)} · SL ${fmtPrice(data.sl)} · TP ${fmtPrice(data.tp)}`;
+        `<span style="color:var(--profit)">✓ ${direction}</span> · #${orderId} · @ ${price} · SL ${sl} · TP ${tp}`;
       loadPositions();
     } else {
-      toast(data.message || 'Trade rejected', 'error');
+      const msg = (data && data.message) ? data.message : 'Trade rejected by broker';
+      toast(msg, 'error');
       document.getElementById('tradeResult').innerHTML =
-        `<span style="color:var(--loss)">✗ Rejected</span> · ${data.message}`;
+        `<span style="color:var(--loss)">✗ Rejected</span> · ${msg}`;
     }
-  } catch(e) { toast('Trade failed: ' + e.message, 'error'); }
+  } catch(e) {
+    toast('Network error: ' + e.message, 'error');
+    document.getElementById('tradeResult').innerHTML =
+      `<span style="color:var(--loss)">✗ Error</span> · ${e.message}`;
+  }
 }
 
 // ── Positions ─────────────────────────────────────────────────
