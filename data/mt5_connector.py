@@ -33,7 +33,7 @@ import requests
 import os
 
 # Read the API key from the .env file. Empty string if not set.
-ALPHA_VANTAGE_KEY = os.getenv("JNK4MXL8QQOKN47U", "")
+ALPHA_VANTAGE_KEY = os.getenv("ALPHA_VANTAGE_API_KEY", "")
 
 def get_price_from_alphavantage(symbol: str) -> dict:
     """
