@@ -16,48 +16,57 @@ To run:
 Then open: http://localhost:8000
 """
 from __future__ import annotations
-from database.repository import get_trade_history, get_performance_summary, get_recent_signals
-from database.repository import save_account_snapshot  # add at top
-from database.repository import save_signal  # add at top
-import logging
-from typing import Optional
-from fastapi import FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from fastapi.requests import Request
-from fastapi.responses import HTMLResponse
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import uvicorn
+
 import logging
 import os
 from contextlib import asynccontextmanager
+from typing import Optional
 
-# ── Import your teammate's modules ───────────────────────────────────────────
-from data.mt5_connector       import connector
-from data.data_fetcher        import fetcher
+import uvicorn
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.requests import Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
+
+from config.settings import get_settings
+from data.data_fetcher import fetcher
+from data.mt5_connector import connector
+from database.repository import (
+    get_performance_summary,
+    get_recent_signals,
+    get_trade_history,
+    save_account_snapshot,
+    save_signal,
+)
+from execution.risk_manager import risk_manager
+from execution.trade_executor import TradeRequest, executor
 from services.strategy_engine import engine
-from execution.risk_manager   import risk_manager
-from execution.trade_executor import executor, TradeRequest
-from strategies.base          import Signal
-from config.settings          import get_settings
+from strategies.base import Signal
 
 settings = get_settings()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ── FastAPI app ───────────────────────────────────────────────────────────────
+
+# ── FastAPI lifespan — runs on startup ────────────────────────────────────────
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Auto-initialise database tables on every startup
+    # Auto-initialise database tables on every startup.
+    # Uses CREATE TABLE IF NOT EXISTS so existing data is never touched.
     from database.init_db import create_tables
     create_tables()
     logger.info("Database initialised.")
     yield
 
+
+# ── App ───────────────────────────────────────────────────────────────────────
+
 app = FastAPI(title="AlgoTrader Bot", version="2.0.0", lifespan=lifespan)
 
-# Allow the browser to talk to this server
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -65,84 +74,121 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Serve static files (CSS, JS) and HTML templates
 app.mount("/static", StaticFiles(directory="ui/static"), name="static")
 templates = Jinja2Templates(directory="ui/templates")
 
 
-# ── Request/Response models ───────────────────────────────────────────────────
-# These define the shape of data coming IN from the browser
+# ── Request / Response models ─────────────────────────────────────────────────
 
 class LoginRequest(BaseModel):
-    login:    int
-    password: str
-    server:   str
-    demo_mode: bool = False   # new field, defaults to False
+    login:     int
+    password:  str
+    server:    str
+    demo_mode: bool = False
+
 
 class TradeRequestBody(BaseModel):
-    symbol:   str
-    signal:   str        # "BUY" or "SELL"
-    lot:      float
-    sl_pips:  int
-    tp_pips:  int
+    symbol:  str
+    signal:  str    # "BUY" or "SELL"
+    lot:     float
+    sl_pips: int
+    tp_pips: int
 
 
-# ── HTML Page Routes ──────────────────────────────────────────────────────────
-# These serve the actual HTML pages when you visit a URL in your browser
+# ── HTML page routes ──────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    """Serve the login page at http://localhost:8000"""
+    """Login page."""
     return templates.TemplateResponse(request, "login.html")
+
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
-    """Serve the main trading dashboard"""
+    """Main trading dashboard."""
     return templates.TemplateResponse(request, "dashboard.html")
+
 
 @app.get("/history", response_class=HTMLResponse)
 async def history(request: Request):
-    """Serve the trade history page"""
+    """Trade history page."""
     return templates.TemplateResponse(request, "history.html")
+
 
 @app.get("/performance", response_class=HTMLResponse)
 async def performance(request: Request):
-    """Serve the performance metrics page"""
+    """Performance analytics page."""
     return templates.TemplateResponse(request, "performance.html")
+
 
 @app.get("/risk", response_class=HTMLResponse)
 async def risk(request: Request):
-    """Serve the risk management page"""
+    """Risk manager page."""
     return templates.TemplateResponse(request, "risk.html")
 
-# ── API Routes ────────────────────────────────────────────────────────────────
-# These return JSON data — called by JavaScript in the HTML pages
+
+# ── API routes ────────────────────────────────────────────────────────────────
 
 @app.post("/api/connect")
 async def connect(body: LoginRequest):
+    """
+    Connect to MT5 broker or demo mode.
+    Saves an account snapshot to the database on every successful login.
+    """
     try:
-        # Demo mode — skip MT5 entirely, go straight to mock
+        # ── Demo mode — bypass MT5 entirely ──────────────────────────────────
         if body.demo_mode:
             connector.connect_mock(body.login, body.server)
+            info = connector.get_account_info()
+
+            try:
+                save_account_snapshot(
+                    login=body.login,
+                    server=body.server,
+                    balance=info.get("balance", 0),
+                    equity=info.get("equity", 0),
+                    margin=info.get("margin", 0),
+                    free_margin=info.get("free_margin", 0),
+                    currency=info.get("currency", "USD"),
+                    mock_mode=True,
+                )
+            except Exception as e:
+                logger.warning("Could not save account snapshot (demo): %s", e)
+
             return {
                 "success":   True,
                 "mock_mode": True,
-                "account":   connector.get_account_info(),
+                "account":   info,
             }
-        
-        # Real connection attempt    
+
+        # ── Real MT5 connection attempt ───────────────────────────────────────
         success = connector.connect(body.login, body.password, body.server)
 
         if not success:
-            # This only happens on Windows when MT5 app is not running
             raise HTTPException(
                 status_code=503,
-                detail="MetaTrader 5 is not running. Please open the MT5 application first, then try again."
+                detail=(
+                    "MetaTrader 5 is not running. "
+                    "Please open the MT5 application first, then try again."
+                ),
             )
 
         info = connector.get_account_info()
 
-        # Tell the frontend whether this is a real or mock session
+        try:
+            save_account_snapshot(
+                login=body.login,
+                server=body.server,
+                balance=info.get("balance", 0),
+                equity=info.get("equity", 0),
+                margin=info.get("margin", 0),
+                free_margin=info.get("free_margin", info.get("margin_free", 0)),
+                currency=info.get("currency", "USD"),
+                mock_mode=connector.mock_mode,
+            )
+        except Exception as e:
+            logger.warning("Could not save account snapshot (real): %s", e)
+
         return {
             "success":   True,
             "mock_mode": connector.mock_mode,
@@ -186,13 +232,16 @@ async def get_price(symbol: str):
 
 @app.get("/api/signal/{symbol}")
 async def get_signal(symbol: str, timeframe: str = "M15"):
+    """
+    Run all 40 strategies and return the aggregated signal.
+    Saves the result to the database.
+    """
     if not connector.is_connected:
         raise HTTPException(status_code=401, detail="Not connected")
     try:
         df = fetcher.get_ohlcv(symbol, timeframe, 500)
 
         if df.empty:
-            # Return a valid NONE signal instead of crashing
             return {
                 "symbol":          symbol,
                 "final_signal":    "NONE",
@@ -202,14 +251,14 @@ async def get_signal(symbol: str, timeframe: str = "M15"):
                 "none_votes":      0,
                 "total_evaluated": 0,
                 "top_strategies":  [],
-                "note":            "No data available for this symbol"
+                "note":            "No data available for this symbol",
             }
 
         result = engine.evaluate(df, symbol)
 
-        # Save to database
         save_signal(
-            symbol=symbol, timeframe=timeframe,
+            symbol=symbol,
+            timeframe=timeframe,
             final_signal=result.final_signal,
             confidence=result.confidence,
             buy_votes=result.buy_votes,
@@ -249,22 +298,19 @@ async def get_ohlcv(symbol: str, timeframe: str = "M15", count: int = 100):
     """Return OHLCV candlestick data for charting."""
     if not connector.is_connected:
         raise HTTPException(status_code=401, detail="Not connected")
-    
+
     df = fetcher.get_ohlcv(symbol, timeframe, count)
     if df.empty:
         raise HTTPException(status_code=404, detail="No data")
-    
-    # Reset index to get time as a column regardless of DataFrame format
+
     df = df.reset_index()
-    
-    # Handle both 'time' and DatetimeIndex column names
-    time_col = 'time' if 'time' in df.columns else df.columns[0]
-    
+    time_col = "time" if "time" in df.columns else df.columns[0]
+
     return {
         "symbol": symbol,
         "data": [
             {
-                "time":   str(row[time_col])[:16],  # trim to YYYY-MM-DD HH:MM
+                "time":   str(row[time_col])[:16],
                 "open":   round(float(row["open"]),  5),
                 "high":   round(float(row["high"]),  5),
                 "low":    round(float(row["low"]),   5),
@@ -272,7 +318,7 @@ async def get_ohlcv(symbol: str, timeframe: str = "M15", count: int = 100):
                 "volume": int(row["tick_volume"]),
             }
             for _, row in df.iterrows()
-        ]
+        ],
     }
 
 
@@ -285,15 +331,13 @@ async def place_trade(body: TradeRequestBody):
     if not connector.is_connected:
         raise HTTPException(status_code=401, detail="Not connected")
 
-    # Step 1 — Risk check
-    account  = connector.get_account_info()
-    equity   = account.get("equity", 0)
-    ok, reason = risk_manager.validate_trade(lot=body.lot, equity=equity)
+    account        = connector.get_account_info()
+    equity         = account.get("equity", 0)
+    ok, reason     = risk_manager.validate_trade(lot=body.lot, equity=equity)
 
     if not ok:
         return {"success": False, "message": reason}
 
-    # Step 2 — Build and execute the trade request
     try:
         signal = Signal.BUY if body.signal == "BUY" else Signal.SELL
         req    = TradeRequest(
@@ -333,11 +377,11 @@ async def get_risk_status():
     account = connector.get_account_info()
     equity  = account.get("equity", 10000)
     return {
-        "daily_trades":    risk_manager.daily_trade_count(),
-        "max_trades":      settings.MAX_TRADES_PER_DAY,
-        "drawdown_pct":    round(risk_manager.current_drawdown_pct(equity), 2),
-        "max_drawdown":    settings.MAX_DRAWDOWN_PCT,
-        "kill_switch":     risk_manager._kill_switch,
+        "daily_trades": risk_manager.daily_trade_count(),
+        "max_trades":   settings.MAX_TRADES_PER_DAY,
+        "drawdown_pct": round(risk_manager.current_drawdown_pct(equity), 2),
+        "max_drawdown": settings.MAX_DRAWDOWN_PCT,
+        "kill_switch":  risk_manager._kill_switch,
     }
 
 
@@ -365,16 +409,23 @@ async def get_status():
         "connected": connector.is_connected,
         "mock_mode": connector.mock_mode,
     }
+
+
 @app.get("/api/history")
 async def api_history(symbol: str = None, limit: int = 50):
+    """Return trade history from database."""
     return {"trades": get_trade_history(symbol=symbol, limit=limit)}
+
 
 @app.get("/api/performance/summary")
 async def api_performance():
+    """Return daily performance summary from database."""
     return {"performance": get_performance_summary(days=30)}
+
 
 @app.get("/api/signals/log")
 async def api_signals_log(symbol: str = None, limit: int = 20):
+    """Return recent signal evaluations from database."""
     return {"signals": get_recent_signals(symbol=symbol, limit=limit)}
 
 
@@ -384,4 +435,4 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=8000,
         reload=False,
-    )    
+    )
