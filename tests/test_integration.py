@@ -376,3 +376,23 @@ class TestDatabaseIntegration:
         data = res.json()
         assert "signals" in data
         assert len(data["signals"]) > 0
+
+    def test_account_saved_to_database_on_login(self, client):
+        """Account snapshot is saved to database when user connects."""
+        from database.connection import engine
+        from sqlalchemy import text
+
+        with engine.connect() as c:
+            before = c.execute(text("SELECT COUNT(*) FROM accounts")).scalar()
+
+        client.post("/api/connect", json={
+            "login":     77777777,
+            "password":  "test",
+            "server":    "TestServer",
+            "demo_mode": True,
+        })
+
+        with engine.connect() as c:
+            after = c.execute(text("SELECT COUNT(*) FROM accounts")).scalar()
+
+        assert after > before, "Account snapshot was not saved on login"
