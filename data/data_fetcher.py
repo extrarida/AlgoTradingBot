@@ -1,4 +1,5 @@
 """
+
 data/data_fetcher.py
 ────────────────────
 This file sits between the strategies and the MT5 connector.
@@ -172,5 +173,5 @@ class DataFetcher:
 # This creates ONE DataFetcher that the entire bot shares.
 # Every strategy and every API endpoint imports this same 'fetcher' object.
 # This is important — if each module created its own DataFetcher,
-# the cache would not work because each would have its own separate copy.
+# the cache would not work because each would have its own separate copy....
 fetcher = DataFetcher()
