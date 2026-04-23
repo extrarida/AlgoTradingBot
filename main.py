@@ -47,7 +47,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ── FastAPI app ───────────────────────────────────────────────────────────────
-app = FastAPI(title="AlgoTrader Bot", version="2.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Auto-initialise database tables on every startup
+    from database.init_db import create_tables
+    create_tables()
+    logger.info("Database initialised.")
+    yield
+
+app = FastAPI(title="AlgoTrader Bot", version="2.0.0", lifespan=lifespan)
 
 # Allow the browser to talk to this server
 app.add_middleware(
