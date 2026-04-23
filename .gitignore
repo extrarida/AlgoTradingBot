@@ -3,7 +3,9 @@ algobot.db-shm
 algobot.db-wal
 __pycache__/
 *.pyc
-venv/
 .env
-.venv/
 *.db
+.venv/
+venv/
+**/venv/
+**/.venv/
