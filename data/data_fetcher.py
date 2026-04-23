@@ -117,7 +117,7 @@ class DataFetcher:
         """
         Fetches candle data for multiple symbols in one call.
         Example: get_multi_symbol(['EURUSD', 'GBPUSD', 'USDJPY'])
-        Returns a dictionary:
+        Returns a dictionary...:
             'EURUSD' → DataFrame of EURUSD candles
             'GBPUSD' → DataFrame of GBPUSD candles
         If a symbol fails, it is skipped and the error is logged.
