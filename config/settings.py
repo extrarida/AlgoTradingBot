@@ -40,8 +40,8 @@ class Settings(BaseSettings):
     RISK_PER_TRADE_PCT:        float = 1.0
 
     # ── Strategy engine ───────────────────────────────────────────────────────
-    MIN_STRATEGY_VOTES:         int   = 3
-    CONFIDENCE_THRESHOLD:       float = 0.60
+    MIN_STRATEGY_VOTES:         int   = 3 #3
+    CONFIDENCE_THRESHOLD:       float = 0.60 #0.60
     STRATEGY_EVAL_INTERVAL_SEC: int   = 60
 
     # ── CORS ─────────────────────────────────────────────────────────────────
