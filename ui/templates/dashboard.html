@@ -126,6 +126,7 @@
         <div class="page-sub" style="margin-bottom:0;">40-strategy engine · real-time signals</div>
       </div>
       <div id="marketStatus" class="market-status market-closed">⏸ Loading...</div>
+      <div id="autoBotStatus" class="market-status market-closed">⏸ Bot Off</div>
     </div>
     <div class="top-bar-right">
       <span class="last-updated" id="lastUpdated">—</span>
@@ -289,6 +290,36 @@ const API = 'http://localhost:8000';
 let priceChart = null;
 let currentTf  = 'M15';
 let prevPrice  = null;
+
+let _knownTickets = new Set();
+let _initialLoadDone = false;
+
+async function checkForAutoTrades() {
+    try {
+        const res       = await fetch(`${API}/api/positions`);
+        const data      = await res.json();
+        const positions = data.positions || [];
+
+        if (!_initialLoadDone) {
+            // First run — silently record all existing positions, no toasts
+            positions.forEach(pos => _knownTickets.add(pos.ticket));
+            _initialLoadDone = true;
+            return;
+        }
+
+        // Subsequent runs — only notify for genuinely new positions
+        for (const pos of positions) {
+            if (!_knownTickets.has(pos.ticket)) {
+                _knownTickets.add(pos.ticket);
+                const type  = pos.type === 0 ? 'BUY' : 'SELL';
+                const color = pos.type === 0 ? 'var(--profit)' : 'var(--loss)';
+                toast(`🤖 AUTO ${type} — #${pos.ticket} · ${pos.symbol} @ ${Number(pos.price_open).toFixed(5)}`);
+                document.getElementById('tradeResult').innerHTML =
+                    `<span style="color:${color}">🤖 AUTO ${type}</span> · #${pos.ticket} · ${pos.symbol} · @ ${Number(pos.price_open).toFixed(5)}`;
+            }
+        }
+    } catch(e) {}
+}
 
 // ── Helpers ──────────────────────────────────────────────────
 function toast(msg, type='success') {
@@ -663,6 +694,34 @@ async function loadPositions() {
   } catch(e) {}
 }
 
+//Dashboard Indicator
+async function updateBotStatus() {
+    try {
+        const [botRes, riskRes] = await Promise.all([
+            fetch(`${API}/api/bot/status`),
+            fetch(`${API}/api/risk/status`)
+        ]);
+        const bot  = await botRes.json();
+        const risk = await riskRes.json();
+        const el   = document.getElementById('autoBotStatus');
+
+        if (risk.kill_switch) {
+            el.className   = 'market-status market-closed';
+            el.textContent = '⛔ Bot Halted';
+        } else if (bot.will_trade) {
+            el.className   = 'market-status market-open';
+            el.textContent = '🤖 Bot Active';
+        } else if (bot.connected && bot.mock_mode) {
+            el.className   = 'market-status market-pre';
+            el.textContent = '⏸ Bot Off (Demo)';
+        } else {
+            el.className   = 'market-status market-closed';
+            el.textContent = '⏸ Bot Off';
+        }
+    } catch(e) {}
+}
+
+
 // ── Symbol change ─────────────────────────────────────────────
 function onSymbolChange() {
   prevPrice = null;
@@ -681,6 +740,7 @@ function refreshAll() {
   loadWatchlist();
   updateMarketStatus();
   checkStatus();
+  updateBotStatus();
 }
 
 // ── Init ──────────────────────────────────────────────────────
@@ -690,6 +750,7 @@ setInterval(loadPositions,    10000);
 setInterval(loadWatchlist,    15000);
 setInterval(updateMarketStatus, 60000);
 setInterval(checkStatus,       8000);
+setInterval(checkForAutoTrades, 6000);
 </script>
 </body>
 </html>

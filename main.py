@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from contextlib import asynccontextmanager
 from typing import Optional
 
@@ -50,17 +51,118 @@ settings = get_settings()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# ── Auto trading state ────────────────────────────────────────────────────────
+_auto_trading_enabled: bool = True
+_last_trade_time: dict      = {}  # symbol → timestamp of last auto trade
+
+# ── Automated trading loop ────────────────────────────────────────────────────
+
+async def auto_trade_loop():
+    """
+    Runs every 60 seconds automatically.
+    Analyses the market using all 40 strategies and places a trade
+    if the signal is strong enough and passes all risk checks.
+    No human click required — this is the bot behaviour.
+    """
+    # Only run if connected to real MT5 — never auto trade in mock/demo mode
+    if not _auto_trading_enabled:
+        return
+    if not connector.is_connected:
+        return
+    if connector.mock_mode:
+        return
+
+    symbols = ["EURUSD", "GBPUSD", "XAUUSD", "USDJPY"]
+
+    for symbol in symbols:
+        try:
+            # Step 1 — Get latest price data
+            df = fetcher.get_ohlcv(symbol, "M15", 500)
+            if df.empty:
+                continue
+
+            # Step 2 — Run all 40 strategies
+            result = engine.evaluate(df, symbol)
+
+            # Step 3 — Only act on strong signals
+            if result.final_signal == Signal.NONE:
+                continue
+            if result.confidence < 0.55:
+                logger.info(
+                    "AUTO: %s signal for %s but confidence too low (%.0f%%) — skipping",
+                    result.final_signal, symbol, result.confidence * 100
+                )
+                continue
+
+            logger.info(
+                "AUTO SIGNAL: %s %s — confidence %.0f%% (%d/%d votes)",
+                result.final_signal, symbol,
+                result.confidence * 100,
+                result.buy_votes if result.final_signal == Signal.BUY else result.sell_votes,
+                result.total_evaluated
+            )
+
+            # Guard — don't trade same symbol more than once per minute
+            last = _last_trade_time.get(symbol, 0)
+            if time.time() - last < 60:
+                logger.info("AUTO: %s traded recently — skipping", symbol)
+                continue
+            _last_trade_time[symbol] = time.time()
+
+            # Step 4 — Run risk checks
+            account = connector.get_account_info()
+            equity  = account.get("equity", 0)
+            ok, reason = risk_manager.validate_trade(lot=0.01, equity=equity)
+
+            if not ok:
+                logger.info("AUTO: Trade blocked by risk manager — %s", reason)
+                continue
+
+            # Step 5 — Place the trade
+            req = TradeRequest(
+                symbol  = symbol,
+                signal  = result.final_signal,
+                lot     = 0.01,
+                sl_pips = 50,
+                tp_pips = 100,
+            )
+            trade_result = executor.execute(req)
+
+            if trade_result.success:
+                logger.info(
+                    "AUTO TRADE PLACED: %s %s @ %.5f — ticket #%s",
+                    result.final_signal, symbol,
+                    trade_result.price, trade_result.order_id
+                )
+            else:
+                logger.warning(
+                    "AUTO TRADE FAILED: %s %s — %s",
+                    result.final_signal, symbol, trade_result.message
+                )
+
+        except Exception as e:
+            logger.error("Auto trade loop error for %s: %s", symbol, str(e))
 
 # ── FastAPI lifespan — runs on startup ────────────────────────────────────────
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Auto-initialise database tables on every startup.
-    # Uses CREATE TABLE IF NOT EXISTS so existing data is never touched.
+    # Auto-initialise database tables on startup
     from database.init_db import create_tables
     create_tables()
     logger.info("Database initialised.")
+
+    # Start the automated trading scheduler
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(auto_trade_loop, 'interval', seconds=30, id='auto_trade')
+    scheduler.start()
+    logger.info("Auto trading scheduler started — running every 60 seconds.")
+
     yield
+
+    scheduler.shutdown()
+    logger.info("Scheduler stopped.")
 
 
 # ── App ───────────────────────────────────────────────────────────────────────
@@ -427,6 +529,27 @@ async def api_performance():
 async def api_signals_log(symbol: str = None, limit: int = 20):
     """Return recent signal evaluations from database."""
     return {"signals": get_recent_signals(symbol=symbol, limit=limit)}
+
+# ── Bot control endpoints ─────────────────────────────────────────────────────
+
+@app.post("/api/bot/toggle")
+async def toggle_bot(enabled: bool = True):
+    """Enable or disable the automated trading bot."""
+    global _auto_trading_enabled
+    _auto_trading_enabled = enabled
+    logger.info("Auto trading %s", "enabled" if enabled else "disabled")
+    return {"auto_trading": _auto_trading_enabled}
+
+
+@app.get("/api/bot/status")
+async def bot_status():
+    """Return whether the auto trading bot is currently active."""
+    return {
+        "auto_trading": _auto_trading_enabled,
+        "connected":    connector.is_connected,
+        "mock_mode":    connector.mock_mode,
+        "will_trade":   _auto_trading_enabled and connector.is_connected and not connector.mock_mode,
+    }
 
 
 if __name__ == "__main__":
