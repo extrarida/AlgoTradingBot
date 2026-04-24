@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AlgoTrader — Dashboard</title>
 <link rel="stylesheet" href="/static/css/styling.css">
+<link rel="stylesheet" href="/static/css/guide.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   body { display:flex; min-height:100vh; }
@@ -108,6 +109,9 @@
       <div class="dot" id="connDot"></div>
       <span id="connLabel">Connecting...</span>
     </div>
+    <button class="guide-sidebar-btn" onclick="window.launchTour()">
+      <span>📖</span> App Guide
+    </button>
     <button class="btn-disconnect" onclick="disconnectMT5()">Disconnect</button>
   </div>
 </nav>
@@ -137,22 +141,34 @@
   <!-- Stats row -->
   <div class="stats-grid">
     <div class="stat-tile">
-      <div class="stat-label">Balance</div>
+      <div class="stat-label" style="display:flex;align-items:center;gap:0.4rem;">
+        Balance
+        <div class="card-help"><button class="card-help-btn">?</button><div class="card-help-popup"><strong>Balance</strong>Your settled cash. Only changes when a trade closes.</div></div>
+      </div>
       <div class="stat-value" id="balance">—</div>
       <div class="stat-delta" id="currency">USD</div>
     </div>
     <div class="stat-tile">
-      <div class="stat-label">Equity</div>
+      <div class="stat-label" style="display:flex;align-items:center;gap:0.4rem;">
+        Equity
+        <div class="card-help"><button class="card-help-btn">?</button><div class="card-help-popup"><strong>Equity</strong>Balance plus or minus the current value of all open trades. Changes every price tick.</div></div>
+      </div>
       <div class="stat-value" id="equity">—</div>
       <div class="stat-delta" id="profit">—</div>
     </div>
     <div class="stat-tile">
-      <div class="stat-label">Live Price</div>
+      <div class="stat-label" style="display:flex;align-items:center;gap:0.4rem;">
+        Live Price
+        <div class="card-help"><button class="card-help-btn">?</button><div class="card-help-popup"><strong>Live Price</strong>Current bid price from your broker. Updates every 5 seconds. Spread is the broker's fee.</div></div>
+      </div>
       <div class="stat-value" id="livePrice">—</div>
       <div class="stat-delta" id="spread">—</div>
     </div>
     <div class="stat-tile">
-      <div class="stat-label">Session P&L</div>
+      <div class="stat-label" style="display:flex;align-items:center;gap:0.4rem;">
+        Session P&amp;L
+        <div class="card-help"><button class="card-help-btn">?</button><div class="card-help-popup"><strong>Session P&L</strong>Total floating profit or loss across all open positions. Only becomes real money when trades close.</div></div>
+      </div>
       <div class="stat-value" id="sessionPnl">$0.00</div>
       <div class="stat-delta" id="posCount">0 open positions</div>
     </div>
@@ -205,7 +221,10 @@
 
     <!-- ── Trade controls ── -->
     <div class="card">
-      <div class="card-title">Execute Trade</div>
+      <div class="card-title" style="display:flex;align-items:center;gap:0.4rem;">
+        Execute Trade
+        <div class="card-help"><button class="card-help-btn">?</button><div class="card-help-popup"><strong>Execute Trade</strong>Place a trade manually. Set your symbol, lot size, stop loss and take profit, then click BUY or SELL.</div></div>
+      </div>
 
       <div class="trade-row">
         <div class="form-field">
@@ -241,7 +260,10 @@
 
       <!-- Account detail -->
       <div style="margin-top:1rem;border-top:1px solid var(--border);padding-top:0.875rem;">
-        <div class="card-title" style="margin-bottom:0.6rem;">Account</div>
+        <div class="card-title" style="margin-bottom:0.6rem;display:flex;align-items:center;gap:0.4rem;">
+          Account
+          <div class="card-help"><button class="card-help-btn">?</button><div class="card-help-popup"><strong>Account</strong>Free Margin = money available for new trades. Margin Used = money locked by open positions. Server = your broker connection.</div></div>
+        </div>
         <div style="display:grid;grid-template-columns:auto 1fr;gap:0.3rem 0.875rem;font-size:0.78rem;align-items:center;">
           <div style="color:var(--muted);">Free Margin</div>
           <div style="font-family:var(--mono);color:var(--text-dim);" id="freeMargin">—</div>
@@ -260,7 +282,10 @@
   <div class="card">
     <div class="card-header">
       <div style="display:flex;align-items:center;gap:0.75rem;">
-        <div class="card-title" style="margin-bottom:0;">Price Chart — <span id="chartSymbol">EURUSD</span></div>
+        <div class="card-title" style="margin-bottom:0;display:flex;align-items:center;gap:0.4rem;">
+          Price Chart — <span id="chartSymbol">EURUSD</span>
+          <div class="card-help"><button class="card-help-btn">?</button><div class="card-help-popup"><strong>Price Chart</strong>Live candlestick chart. Use M5/M15/H1/H4 to switch timeframes. Click any watchlist symbol to change the chart.</div></div>
+        </div>
       </div>
       <div style="display:flex;gap:0.35rem;">
         <button class="btn btn-ghost" style="font-size:0.72rem;padding:0.28rem 0.55rem;" onclick="loadChart('M5')"  id="btn-M5">M5</button>
@@ -275,7 +300,10 @@
   <!-- ── Open positions ── -->
   <div class="card">
     <div class="card-header">
-      <div class="card-title" style="margin-bottom:0;">Open Positions</div>
+      <div class="card-title" style="margin-bottom:0;display:flex;align-items:center;gap:0.4rem;">
+        Open Positions
+        <div class="card-help"><button class="card-help-btn">?</button><div class="card-help-popup"><strong>Open Positions</strong>All active trades with live profit/loss. Updated every 10 seconds. Green = winning, Red = losing.</div></div>
+      </div>
       <span style="font-family:var(--mono);font-size:0.72rem;color:var(--muted);" id="positionsAge">—</span>
     </div>
     <div id="positionsTable">
@@ -284,8 +312,192 @@
   </div>
 
 </main>
-
+<script src="/static/js/guide.js"></script>
 <script>
+  // ── Dashboard guide steps ─────────────────────────────────────────────────
+  const DASHBOARD_STEPS = [
+    {
+      selector: '.stats-grid',
+      title:    'Account Overview',
+      position: 'bottom',
+      body: `These four tiles give you a <strong>real-time snapshot</strong> of your trading account at a glance.
+             They update automatically every few seconds from your broker.`
+    },
+    {
+      selector: '.stats-grid .stat-tile:nth-child(1)',
+      title:    'Balance',
+      position: 'bottom',
+      body: `Your <strong>settled cash balance</strong> — the actual money in your account.
+             This number only changes when a trade is fully closed and the profit or loss is locked in.
+             While trades are open, this stays the same.`
+    },
+    {
+      selector: '.stats-grid .stat-tile:nth-child(2)',
+      title:    'Equity',
+      position: 'bottom',
+      body: `Your balance <strong>plus or minus</strong> the current value of all open trades.
+             If your open trades are profitable, equity is higher than balance.
+             If they're losing, equity is lower. This fluctuates constantly as prices move.`
+    },
+    {
+      selector: '.stats-grid .stat-tile:nth-child(3)',
+      title:    'Live Price',
+      position: 'bottom',
+      body: `The <strong>current market price</strong> (bid) for the selected symbol, streamed
+             live from your broker every 5 seconds. The spread below it is the broker's fee —
+             the difference between the buy price and sell price.`
+    },
+    {
+      selector: '.stats-grid .stat-tile:nth-child(4)',
+      title:    'Session P&L',
+      position: 'bottom',
+      body: `The <strong>total floating profit or loss</strong> across all your currently open positions.
+             Positive means your open trades are currently winning. This is unrealised — it only becomes
+             real money when the trades are closed.`
+    },
+    {
+      selector: '#signalMain',
+      title:    'Strategy Signal',
+      position: 'right',
+      body: `This is the <strong>heart of the trading bot</strong>. Every time you click Refresh,
+             all 40 trading strategies analyse the market simultaneously.
+             <br><br>
+             <strong>BUY</strong> = most strategies think the price will go up.<br>
+             <strong>SELL</strong> = most strategies think the price will go down.<br>
+             <strong>NONE</strong> = no clear agreement — the bot stays out.`
+    },
+    {
+      selector: '.conf-bar-bg',
+      title:    'Confidence',
+      position: 'right',
+      body: `How <strong>strongly</strong> the strategies agree. 100% means unanimous agreement.
+             The bot only places trades automatically when confidence is above 55%.
+             Low confidence means mixed signals — better to wait.`
+    },
+    {
+      selector: '.votes-row',
+      title:    'Strategy Votes',
+      position: 'right',
+      body: `Out of 40 strategies evaluated, this shows how many voted <strong>Buy</strong>,
+             how many voted <strong>Sell</strong>, and how many said <strong>Hold</strong>.
+             The winning side needs enough votes to trigger a trade.`
+    },
+    {
+      selector: '#topStrategies',
+      title:    'Top Strategies',
+      position: 'right',
+      body: `The specific strategies that drove the signal, ranked by their individual confidence.
+             For example <strong>RSIOversoldBounce</strong> means the RSI indicator detected an
+             oversold market — historically a buying opportunity.`
+    },
+    {
+      selector: '.trade-row',
+      title:    'Execute Trade',
+      position: 'left',
+      body: `Place a trade <strong>manually</strong> using the bot's analysis as guidance.
+             <br><br>
+             <strong>Symbol</strong> — which market to trade (EURUSD, Gold etc.)<br>
+             <strong>Lot Size</strong> — how much to trade (0.01 = micro lot, smallest safe size)<br>
+             <strong>SL (pips)</strong> — stop loss: auto-closes if trade loses this many pips<br>
+             <strong>TP (pips)</strong> — take profit: auto-closes when trade wins this many pips`
+    },
+    {
+      selector: '.btn-buy',
+      title:    'BUY Button',
+      position: 'left',
+      body: `Opens a <strong>Buy position</strong> — you're betting the price will go up.
+             The bot sends this order directly to your broker via MetaTrader 5.
+             The trade will appear in your MT5 terminal immediately.`
+    },
+    {
+      selector: '#priceChart',
+      title:    'Price Chart',
+      position: 'top',
+      body: `Live <strong>candlestick chart</strong> showing recent price movement for the selected symbol.
+             <br><br>
+             Use the <strong>M5, M15, H1, H4</strong> buttons to switch between timeframes —
+             M5 shows 5-minute candles (short-term), H4 shows 4-hour candles (longer-term trends).`
+    },
+    {
+      selector: '#watchlist',
+      title:    'Watchlist',
+      position: 'right',
+      body: `Live prices for all <strong>5 monitored symbols</strong>. The percentage shows
+             how much the price has moved recently.
+             <br><br>
+             <strong>Click any symbol</strong> to switch the entire dashboard — chart, signal,
+             and price — to that market instantly.`
+    },
+    {
+      selector: '#positionsTable',
+      title:    'Open Positions',
+      position: 'top',
+      body: `All your <strong>currently active trades</strong>. Each row shows the ticket number,
+             which market, whether it's a buy or sell, the price you entered at, your stop loss
+             and take profit levels, and the <strong>current floating profit or loss</strong>
+             in real time.`
+    },
+    {
+      selector: '#freeMargin',
+      title:    'Account Details',
+      position: 'top',
+      body: `<strong>Free Margin</strong> — money available to open new trades.<br>
+             <strong>Margin Used</strong> — money locked as collateral for open positions.<br>
+             <strong>Server</strong> — which broker server you're connected to.<br>
+             <strong>Login</strong> — your broker account number.`
+    },
+  ];
+   
+  // ── Card hover tooltips ───────────────────────────────────────────────────
+  const DASHBOARD_CARD_TOOLTIPS = [
+    {
+      selector: '.stats-grid .stat-tile:nth-child(1)',
+      title:    'Balance',
+      body:     'Your settled cash. Only changes when trades close.'
+    },
+    {
+      selector: '.stats-grid .stat-tile:nth-child(2)',
+      title:    'Equity',
+      body:     'Balance ± open trade P&L. Changes every price tick.'
+    },
+    {
+      selector: '.stats-grid .stat-tile:nth-child(3)',
+      title:    'Live Price',
+      body:     'Current bid price from your broker. Updates every 5 seconds.'
+    },
+    {
+      selector: '.stats-grid .stat-tile:nth-child(4)',
+      title:    'Session P&L',
+      body:     'Total floating profit/loss on all open positions right now.'
+    },
+    {
+      selector: '.card:has(#signalMain)',
+      title:    'Strategy Signal',
+      body:     '40 strategies vote BUY/SELL/HOLD. The majority wins. Confidence shows how strongly they agree.'
+    },
+    {
+      selector: '.card:has(.btn-buy)',
+      title:    'Execute Trade',
+      body:     'Place a manual trade. Set your lot size, stop loss, and take profit before clicking BUY or SELL.'
+    },
+    {
+      selector: '.card:has(#priceChart)',
+      title:    'Price Chart',
+      body:     'Live candlestick chart. Switch timeframes with M5/M15/H1/H4 buttons.'
+    },
+    {
+      selector: '.card:has(#positionsTable)',
+      title:    'Open Positions',
+      body:     'All active trades with live P&L. Updated every 10 seconds.'
+    },
+  ];
+   
+  // ── Init ──────────────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    initGuide(DASHBOARD_STEPS, 'dashboard');
+  });
+
+
 const API = 'http://localhost:8000';
 let priceChart = null;
 let currentTf  = 'M15';
@@ -294,31 +506,24 @@ let prevPrice  = null;
 let _knownTickets = new Set();
 let _initialLoadDone = false;
 
-async function checkForAutoTrades() {
-    try {
-        const res       = await fetch(`${API}/api/positions`);
-        const data      = await res.json();
-        const positions = data.positions || [];
+function checkNewPositions(positions) {
+    // Called from inside loadPositions() with the latest positions data
+    if (!_initialLoadDone) {
+        positions.forEach(pos => _knownTickets.add(pos.ticket));
+        _initialLoadDone = true;
+        return;
+    }
 
-        if (!_initialLoadDone) {
-            // First run — silently record all existing positions, no toasts
-            positions.forEach(pos => _knownTickets.add(pos.ticket));
-            _initialLoadDone = true;
-            return;
+    for (const pos of positions) {
+        if (!_knownTickets.has(pos.ticket)) {
+            _knownTickets.add(pos.ticket);
+            const type  = pos.type === 0 ? 'BUY' : 'SELL';
+            const color = pos.type === 0 ? 'var(--profit)' : 'var(--loss)';
+            toast(`🤖 AUTO ${type} — #${pos.ticket} · ${pos.symbol} @ ${Number(pos.price_open).toFixed(5)}`);
+            document.getElementById('tradeResult').innerHTML =
+                `<span style="color:${color}">🤖 AUTO ${type}</span> · #${pos.ticket} · ${pos.symbol} · @ ${Number(pos.price_open).toFixed(5)}`;
         }
-
-        // Subsequent runs — only notify for genuinely new positions
-        for (const pos of positions) {
-            if (!_knownTickets.has(pos.ticket)) {
-                _knownTickets.add(pos.ticket);
-                const type  = pos.type === 0 ? 'BUY' : 'SELL';
-                const color = pos.type === 0 ? 'var(--profit)' : 'var(--loss)';
-                toast(`🤖 AUTO ${type} — #${pos.ticket} · ${pos.symbol} @ ${Number(pos.price_open).toFixed(5)}`);
-                document.getElementById('tradeResult').innerHTML =
-                    `<span style="color:${color}">🤖 AUTO ${type}</span> · #${pos.ticket} · ${pos.symbol} · @ ${Number(pos.price_open).toFixed(5)}`;
-            }
-        }
-    } catch(e) {}
+    }
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -651,6 +856,8 @@ async function loadPositions() {
     const data = await res.json();
     const positions = data.positions || [];
 
+    checkNewPositions(positions);
+
     // Update session P&L
     const totalPnl = positions.reduce((s,p) => s + (p.profit||0), 0);
     const pnlEl    = document.getElementById('sessionPnl');
@@ -746,11 +953,11 @@ function refreshAll() {
 // ── Init ──────────────────────────────────────────────────────
 refreshAll();
 setInterval(loadPrice,         5000);
-setInterval(loadPositions,    10000);
+setInterval(loadPositions, 3000);
 setInterval(loadWatchlist,    15000);
 setInterval(updateMarketStatus, 60000);
 setInterval(checkStatus,       8000);
-setInterval(checkForAutoTrades, 6000);
+setInterval(updateBotStatus,    5000);
 </script>
 </body>
 </html>

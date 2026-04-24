@@ -119,12 +119,18 @@ async def auto_trade_loop():
                 continue
 
             # Step 5 — Place the trade
+            sl_pips, tp_pips = {
+                "XAUUSD": (2000, 4000),   # Gold — $20 SL, $40 TP
+                "US30":   (2000, 4000),   # Dow Jones — wider stops
+                "USDJPY": (50,   100),    # JPY pairs — standard
+            }.get(symbol, (50, 100))
+
             req = TradeRequest(
                 symbol  = symbol,
                 signal  = result.final_signal,
                 lot     = 0.01,
-                sl_pips = 50,
-                tp_pips = 100,
+                sl_pips = sl_pips,
+                tp_pips = tp_pips,
             )
             trade_result = executor.execute(req)
 

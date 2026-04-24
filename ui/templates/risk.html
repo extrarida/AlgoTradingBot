@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AlgoTrader — Risk Manager</title>
 <link rel="stylesheet" href="/static/css/styling.css">
+<link rel="stylesheet" href="/static/css/guide.css">
 <style>
   body { display:flex; min-height:100vh; }
   .main { margin-left:220px; flex:1; padding:1.75rem 2rem; }
@@ -58,6 +59,9 @@
   <a href="/risk"        class="nav-link active"><span class="nav-icon">🛡️</span> Risk Manager</a>
   <div class="sidebar-bottom">
     <div class="connection-badge"><div class="dot"></div><span>Mock Mode</span></div>
+    <button class="guide-sidebar-btn" onclick="window.launchTour()">
+      <span>📖</span> App Guide
+    </button>
     <button class="btn-disconnect" onclick="window.location.href='/'">Disconnect</button>
   </div>
 </nav>
@@ -114,8 +118,105 @@
     </div>
   </div>
 </main>
-
+<script src="/static/js/guide.js"></script>
 <script>
+
+const RISK_STEPS = [
+  {
+    selector: '.kill-panel',
+    title:    'Emergency Kill Switch',
+    position: 'bottom',
+    body:     `This is the <strong>emergency stop button</strong>. Clicking Halt Trading
+               immediately blocks <em>all</em> new orders — both manual and automated —
+               regardless of what any strategy says.
+               <br><br>
+               Use this if you want to pause the bot instantly. Click Resume to re-enable.`
+  },
+  {
+    selector: '.kill-indicator',
+    title:    'Status Indicator',
+    position: 'right',
+    body:     `<strong>Green shield</strong> = trading is active and normal.<br>
+               <strong>Red stop sign</strong> = kill switch is on, all trading halted.
+               <br><br>
+               This status also appears on the main dashboard as the Bot Active/Halted badge.`
+  },
+  {
+    selector: '#riskGauges',
+    title:    'Risk Gauges',
+    position: 'left',
+    body:     `Two live gauges showing your current risk exposure:
+               <br><br>
+               <strong>Daily Trades</strong> — how many trades have been placed today versus
+               the maximum allowed limit.<br>
+               <strong>Drawdown</strong> — how far your account has dropped from its peak value.
+               If it hits the limit, trading stops automatically to protect your capital.`
+  },
+  {
+    selector: '#checkList',
+    title:    'Pre-Trade Safety Checks',
+    position: 'top',
+    body:     `Before <strong>every single trade</strong>, the bot runs these 5 checks in order.
+               If any check fails, the trade is blocked.
+               <br><br>
+               Green tick = check passed. Red cross = check failed, trade blocked.
+               All 5 must pass for a trade to be allowed.`
+  },
+  {
+    selector: '#riskSettings',
+    title:    'Risk Settings',
+    position: 'top',
+    body:     `The configured <strong>safety limits</strong> for the bot:
+               <br><br>
+               <strong>Max Trades/Day</strong> — bot stops trading once this number is reached.<br>
+               <strong>Max Drawdown</strong> — bot halts if account drops this % from its peak.<br>
+               <strong>Lot Size limits</strong> — minimum and maximum trade sizes allowed.<br>
+               <strong>Min Strategy Votes</strong> — how many strategies must agree before trading.`
+  },
+  {
+    selector: '.card:has(.layer-item)',
+    title:    '5-Layer Protection System',
+    position: 'top',
+    body:     `The bot's <strong>5 independent safety layers</strong>, applied in sequence
+               before every trade:
+               <br><br>
+               <strong>1. Kill Switch</strong> — manual emergency stop<br>
+               <strong>2. Daily Limit</strong> — max trades per day<br>
+               <strong>3. Drawdown</strong> — max account loss from peak<br>
+               <strong>4. Lot Size</strong> — valid trade size range<br>
+               <strong>5. Fat Finger</strong> — rejects abnormally large orders`
+  },
+];
+ 
+const RISK_CARD_TOOLTIPS = [
+  {
+    selector: '.card:has(.kill-panel)',
+    title:    'Kill Switch',
+    body:     'Emergency stop. Halts all trading instantly when activated.'
+  },
+  {
+    selector: '.card:has(#riskGauges)',
+    title:    'Risk Levels',
+    body:     'Live gauges showing daily trade count and account drawdown vs their limits.'
+  },
+  {
+    selector: '.card:has(#checkList)',
+    title:    'Safety Checks',
+    body:     'All 5 checks must pass before any trade is allowed through.'
+  },
+  {
+    selector: '.card:has(#riskSettings)',
+    title:    'Risk Settings',
+    body:     'Configured safety limits for lot size, drawdown, daily trades, and strategy thresholds.'
+  },
+];
+ 
+document.addEventListener('DOMContentLoaded', () => {
+  initGuide(RISK_STEPS, 'risk');
+  initCardTooltips(RISK_CARD_TOOLTIPS);
+});
+
+
 const API = 'http://localhost:8000';
 
 function toast(msg, type='success') {
