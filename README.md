@@ -89,37 +89,127 @@ The application runs fully in Demo Mode on any machine without a real MT5 connec
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────┐
-│         Browser (HTML/CSS/JS)        │  ← 5 pages: Login, Dashboard,
-│         Web Dashboard                │    History, Performance, Risk
-└──────────────┬──────────────────────┘
-               │ HTTP (FastAPI REST API)
-┌──────────────▼──────────────────────┐
-│         main.py (FastAPI Server)     │  ← REST API + APScheduler bot loop
-└──────┬───────────────────┬──────────┘
-       │                   │
-┌──────▼──────┐   ┌────────▼─────────────┐
-│  Strategy   │   │    Data Layer         │
-│  Engine     │   │                       │
-│             │   │  mt5_connector.py     │
-│  40 strats  │◄──┤  data_fetcher.py     │
-│  vote →     │   │  (live MT5 / mock /  │
-│  BUY/SELL   │   │   Alpha Vantage API) │
-│  /NONE      │   └──────────────────────┘
-└──────┬──────┘
-       │
-┌──────▼──────────────────────────────┐
-│         Risk Manager                 │  ← 5 safety checks before every trade
-└──────┬──────────────────────────────┘
-       │
-┌──────▼──────────────────────────────┐
-│         Trade Executor               │  ← Sends order to MT5 or mock
-└──────┬──────────────────────────────┘
-       │
-┌──────▼──────────────────────────────┐
-│         Database (SQLite)            │  ← Logs trade, signal, account data
-│         8 tables via SQLAlchemy      │
-└─────────────────────────────────────┘
+       │   Broker / Exchange Feeds    │
+                         │  (WebSocket / FIX / Stream)  │
+                         └──────────────┬───────────────┘
+                                        │
+                                        ▼
+                         ┌──────────────────────────────┐
+                         │   Market Data Connector      │
+                         │ - auth                       │
+                         │ - subscribe symbols          │
+                         │ - heartbeat                  │
+                         │ - reconnect                  │
+                         └──────────────┬───────────────┘
+                                        │
+                                        ▼
+                         ┌──────────────────────────────┐
+                         │   Parser / Decoder           │
+                         │ - decode raw feed            │
+                         │ - parse trade / bid / ask    │
+                         │ - parse order book           │
+                         └──────────────┬───────────────┘
+                                        │
+                                        ▼
+                         ┌──────────────────────────────┐
+                         │   Normalizer                 │
+                         │ - map to internal schema     │
+                         │ - symbol mapping             │
+                         │ - field standardization      │
+                         └──────────────┬───────────────┘
+                                        │
+                                        ▼
+                         ┌──────────────────────────────┐
+                         │   Timestamp / QA Layer       │
+                         │ - exchange ts                │
+                         │ - receive ts                 │
+                         │ - duplicate check            │
+                         │ - stale feed detection       │
+                         │ - sequence / gap detection   │
+                         └──────────────┬───────────────┘
+                                        │
+                    ┌───────────────────┴───────────────────┐
+                    ▼                                       ▼
+      ┌──────────────────────────────┐       ┌──────────────────────────────┐
+      │  Real-Time Market Cache      │       │ Historical Tick Recorder     │
+      │ - latest LTP                 │       │ - raw ticks                  │
+      │ - best bid/ask               │       │ - normalized events          │
+      │ - latest book snapshot       │       │ - replay store               │
+      └──────────────┬───────────────┘       └──────────────────────────────┘
+                     │
+                     ▼
+      ┌─────────────────────────────────────────────────────┐
+      │ Feature Engine / Signal Prep                       │
+      │ - rolling stats                                    │
+      │ - indicators                                       │
+      │ - order book features                              │
+      │ - spreads / volatility / momentum                  │
+      └──────────────────────┬──────────────────────────────┘
+                             │
+                             ▼
+      ┌─────────────────────────────────────────────────────┐
+      │ Strategy Engine                                     │
+      │ - alpha logic                                       │
+      │ - rules / ML model                                  │
+      │ - buy/sell/hold signal                              │
+      │ - target qty / price / urgency                      │
+      └──────────────────────┬──────────────────────────────┘
+                             │
+                             ▼
+      ┌─────────────────────────────────────────────────────┐
+      │ Pre-Trade Risk Engine                               │
+      │ - max order size                                    │
+      │ - max position                                      │
+      │ - exposure checks                                   │
+      │ - daily loss limits                                 │
+      │ - fat-finger checks                                 │
+      │ - kill switch                                       │
+      └──────────────────────┬──────────────────────────────┘
+                             │
+                             ▼
+      ┌─────────────────────────────────────────────────────┐
+      │ OMS (Order Management System)                       │
+      │ - create order                                      │
+      │ - maintain order state                              │
+      │ - amend / cancel                                    │
+      │ - track partial fills / rejections                  │
+      └──────────────────────┬──────────────────────────────┘
+                             │
+                             ▼
+      ┌─────────────────────────────────────────────────────┐
+      │ EMS / Execution Engine                              │
+      │ - route to broker                                   │
+      │ - TWAP/VWAP/iceberg logic                           │
+      │ - retry / failover                                  │
+      │ - smart routing                                     │
+      └──────────────────────┬──────────────────────────────┘
+                             │
+                             ▼
+               ┌────────────────────────────────────┐
+               │ Broker Order API / FIX Gateway     │
+               └────────────────┬───────────────────┘
+                                │
+                                ▼
+                         ┌───────────────┐
+                         │ Exchange      │
+                         └──────┬────────┘
+                                │ fills / rejects / cancels
+                                ▼
+      ┌─────────────────────────────────────────────────────┐
+      │ Execution Report Handler                            │
+      │ - fill events                                       │
+      │ - rejection events                                  │
+      │ - cancel/replace confirmation                       │
+      └──────────────────────┬──────────────────────────────┘
+                             │
+              ┌──────────────┼──────────────┬──────────────┐
+              ▼              ▼              ▼              ▼
+┌────────────────────┐ ┌────────────────┐ ┌────────────────────┐ ┌────────────────────┐
+│ Position Service   │ │ PnL Engine     │ │ Risk Dashboard     │ │ Monitoring / Alerts│
+│ - positions        │ │ - realized PnL │ │ - exposure         │ │ - disconnects      │
+│ - avg cost         │ │ - unrealized   │ │ - limits           │ │ - latency          │
+│ - cash             │ │ - fees/slippage│ │ - breaches         │ │ - stale feed       │
+└────────────────────┘ └────────────────┘ └────────────────────┘ └────────────────────┘
 ```
 
 ---
