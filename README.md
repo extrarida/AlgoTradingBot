@@ -109,7 +109,8 @@ When MT5 is unavailable, mock mode activates automatically — synthetic prices,
 ## 🏗️ Architecture
 
 ```
-       │   Broker / Exchange Feeds    │
+                         ┌──────────────────────────────┐
+                         │   Broker / Exchange Feeds    │
                          │  (WebSocket / FIX / Stream)  │
                          └──────────────┬───────────────┘
                                         │
