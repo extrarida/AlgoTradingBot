@@ -22,18 +22,6 @@ real-time market data, persistent database storage, and a full web dashboard.**
 
 ## 📌 Overview
 
-Here is the more precise version:
-
----
-
-## 📌 Overview
-
-Here is the corrected opening statement:
-
----
-
-## 📌 Overview
-
 AlgoBot is a Python-based algorithmic trading system that connects to live financial data sources via multiple API integrations and executes trades automatically using real-time technical analysis. The architecture separates data ingestion, signal generation, risk management, and execution into independent, testable modules — reflecting professional quantitative trading system design.
 
 ---
