@@ -1,4 +1,4 @@
-# ⚡ AlgoTrader Bot
+# ⚡ AlgoTrading Bot
 
 <div align="center">
 
