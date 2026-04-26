@@ -22,51 +22,83 @@ real-time market data, persistent database storage, and a full web dashboard.**
 
 ## 📌 Overview
 
-AlgoBot is a production-architected, Python-based algorithmic trading system designed to connect to the MetaTrader 5 (MT5) broker platform and execute trades automatically based on real-time technical analysis signals. The system is built around a modular, layered architecture that separates data ingestion, signal generation, risk management, and execution into independent, testable components — mirroring the design principles used in professional quantitative trading systems.
-
-**🔄 How the System Works**
-The bot operates on a 60-second evaluation cycle, driven by APScheduler running in the background. On every cycle, it fetches the latest market data, runs all 40 strategies simultaneously, aggregates their votes, applies risk checks, and either places a trade or waits for the next cycle — all without any human input.
-
-**📡 Three-Tier API and Data Layer**
-The system integrates two external APIs and one internal fallback to ensure continuous price availability under any condition:
-Tier 1 — MetaTrader5 Python API (Primary)
-The MT5 Python package communicates directly with the MT5 desktop application running locally on the same machine. This is not a conventional web API — it uses local inter-process communication with credential-based authentication (account login, password, and broker server name). When connected, it provides real-time bid/ask prices, historical OHLCV candle data, account equity information, open position data, and direct order execution to the broker.
-Tier 2 — Alpha Vantage REST API (Secondary Fallback)
-If MT5 is unavailable, the system automatically switches to the Alpha Vantage REST API — a standard web-based financial data service. The system constructs an authenticated HTTP GET request using a private API key stored securely in the .env file, receives a JSON response containing the latest exchange rate data, parses the bid and ask values, and feeds them into the same pipeline. The transition happens automatically with no manual intervention.
-Tier 3 — Synthetic Mock Price Generator (Final Fallback)
-If both external sources are unavailable, the system generates realistic synthetic prices internally using a seeded mathematical random walk formula. Prices start from realistic base values for each symbol and move within historically plausible ranges. This allows the complete system — all 40 strategies, the risk engine, the trade executor, and the dashboard — to run and be fully demonstrated without any external dependency.
-
-**🧠 40-Strategy Consensus Engine**
-The system runs 40 independent trading strategies simultaneously — 20 buy strategies (B01–B20) and 20 sell strategies (S01–S20) — each implemented as a self-contained Python class inheriting from a common BaseStrategy interface. The strategies span four analytical categories:
-
-Momentum strategies detect markets moving strongly in one direction — MACD Crossover, EMA Crossover, Golden Cross, ADX Trend Pullback, Higher Highs Pattern, Momentum Breakout
-Oscillator strategies detect overextended price conditions likely to reverse — RSI Bounce, Stochastic Oversold, VWAP Bounce, Bollinger Band Touch, CCI Recovery, RSI Divergence
-Pattern strategies detect specific multi-candle formations — Hammer, Bullish Engulfing, Morning Star, Inside Bar, Bollinger Squeeze, Shooting Star, Evening Star
-Risk exit strategies monitor open positions and close them when price targets are met — Stop Loss Trigger (2% below entry), Trailing Stop (1.5% from peak), Take Profit (3% gain)
-
-Each strategy returns a vote — BUY, SELL, or NONE — along with a confidence score between 0 and 1. The strategy engine in services/strategy_engine.py collects all 40 votes, sorts them by direction, counts them, and calculates the average confidence for each side. A signal is only generated when at least 3 strategies agree and their average confidence is 60% or above. This consensus requirement prevents any single indicator from triggering a trade and filters out the noise that individual signals frequently produce.
-
-**🛡️ 5-Layer Pre-Trade Risk Management**
-Before any approved signal reaches the broker, it must pass through five sequential risk checks in execution/risk_manager.py. The first check that fails immediately blocks the trade — no check can be skipped or overridden:
-
-Kill Switch — if the emergency stop has been activated from the dashboard, all trading is halted immediately until manually reactivated
-Daily Trade Limit — prevents overtrading by capping the number of orders placed per day (default 20)
-Drawdown Guard — tracks the highest account balance ever reached and stops trading if the account falls more than 5% below that peak
-Lot Size Validation — ensures the requested trade size is within permitted bounds (minimum 0.01, maximum 1.0 lots)
-Fat Finger Protection — calculates the approximate dollar value of the order and blocks it if it is disproportionately large relative to account equity, protecting against software bugs or configuration errors
-
-The risk manager also handles risk-based position sizing using the formula: Lot Size = (Equity × Risk%) / (SL Pips × Pip Value), ensuring a consistent 1% of account equity is risked on every trade regardless of market conditions.
-
-**🧪 Unit Testing**
-The system includes a tests/ directory containing unit tests for the core components of the trading pipeline. Tests cover strategy evaluation logic — verifying that each strategy returns the correct signal type and confidence score for known input data — indicator calculations — verifying RSI, MACD, EMA, and Bollinger Band outputs against manually computed expected values — risk manager checks — verifying that each of the five pre-trade checks correctly blocks or approves trades under boundary conditions — and the mock connector — verifying that the fallback price generation and simulated order execution behave correctly. Tests are written using Python's unittest framework and can be run independently of any live broker connection, ensuring the logic can be validated on any machine at any time.
-**
-**🗄️ Persistent Storage and History**
-All trades, signals, account snapshots, and risk events are persistently stored in a SQLite database via SQLAlchemy ORM. Every time a trade is executed, a complete record is saved — including the symbol, direction, lot size, entry price, stop loss, take profit, order ID from the broker, execution timestamp, and eventual outcome. This data powers the dashboard's trade history view, performance analytics, and risk metrics pages. The SQLAlchemy abstraction layer means the database engine can be migrated from SQLite to PostgreSQL by changing a single configuration value — the architecture is production-migration-ready by design.
-
-**🖥️ Demo Mode**
-The application runs fully in Demo Mode on any machine without a real MT5 connection. When MT5 is not installed or not running, the system automatically activates mock mode — generating synthetic prices, simulating order execution, and maintaining a virtual $10,000 account balance. The dashboard, all strategy signals, all risk checks, and all trade history features work identically in demo mode. This makes the system straightforward to demonstrate and test on any operating system without requiring a broker account or Windows installation.
+Here is the more precise version:
 
 ---
+
+## 📌 Overview
+
+Here is the corrected opening statement:
+
+---
+
+## 📌 Overview
+
+AlgoBot is a Python-based algorithmic trading system that connects to live financial data sources via multiple API integrations and executes trades automatically using real-time technical analysis. The architecture separates data ingestion, signal generation, risk management, and execution into independent, testable modules — reflecting professional quantitative trading system design.
+
+---
+
+### 🔄 How It Works
+
+The bot runs on a pre-determined time intervals via APScheduler — fetching market data, running all 40 strategies, aggregating votes, validating through a 5-layer risk engine, and placing or skipping a trade. No human input required.
+
+---
+
+### 📡 Three-Tier Price Sourcing
+
+**Tier 1 — MetaTrader5 API (Primary)**
+Communicates locally with the MT5 desktop application using credential-based authentication (login, password, server name). Delivers real-time prices, OHLCV data, and live order execution.
+
+**Tier 2 — Alpha Vantage REST API (Fallback)**
+Activates automatically if MT5 is unavailable. Sends an authenticated HTTP GET request using an API key stored in `.env`, receives a JSON price response, and feeds it into the same pipeline.
+
+**Tier 3 — Synthetic Mock Prices (Final Fallback)**
+Generates realistic prices internally using a seeded random walk formula. The entire system runs identically — no external dependency needed.
+
+---
+
+### 🧠 40-Strategy Consensus Engine
+
+**20 buy strategies (B01–B20)** and **20 sell strategies (S01–S20)** run simultaneously, each returning a **BUY, SELL, or NONE** vote with a confidence score. Strategies span four categories:
+
+- **Momentum** — MACD, EMA, Golden Cross, ADX, Higher Highs, Volume Breakout
+- **Oscillator** — RSI, Stochastic, VWAP, Bollinger, CCI, RSI Divergence
+- **Pattern** — Hammer, Engulfing, Morning/Evening Star, Inside Bar, Squeeze
+- **Risk Exit** — Stop Loss (2%), Trailing Stop (1.5%), Take Profit (3%)
+
+A signal is generated only when **≥3 strategies agree** at **≥60% average confidence**. No single strategy can trigger a trade.
+
+---
+
+### 🛡️ 5-Layer Risk Engine
+
+Every signal passes five sequential checks before reaching the broker — first failure blocks the trade:
+
+1. **Kill Switch** — emergency halt from dashboard
+2. **Daily Limit** — maximum 20 trades per day
+3. **Drawdown Guard** — stops trading if account falls 5% below peak
+4. **Lot Validation** — trade size must be between 0.01 and 1.0 lots
+5. **Fat Finger** — blocks orders disproportionately large relative to equity
+
+Position sizing formula: **Lot = (Equity × 1%) / (SL Pips × Pip Value)**
+
+---
+
+### 🧪 Unit Testing
+
+Tests in `tests/` cover strategy logic, indicator calculations, risk checks, and mock connector behaviour using Python's `unittest` framework — all runnable without a live broker connection.
+
+---
+
+### 🗄️ Persistent Storage
+
+All trades and events stored in **SQLite via SQLAlchemy ORM**. Each record includes symbol, direction, lot size, entry, SL, TP, order ID, and timestamp. Migrating to PostgreSQL requires only a `DATABASE_URL` change — production-ready by design.
+
+---
+
+### 🖥️ Demo Mode
+
+When MT5 is unavailable, mock mode activates automatically — synthetic prices, simulated execution, and a virtual $10,000 account. All features work identically. Fully demonstrable on any OS without a broker account.
 
 ## ✨ Features
 
