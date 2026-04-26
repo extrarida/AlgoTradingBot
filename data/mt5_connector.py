@@ -305,21 +305,29 @@ class MT5Connector:
 
     def get_tick(self, symbol: str) -> dict:
         """Return latest bid/ask tick."""
-        if _MT5_AVAILABLE and self.is_connected and not self.mock_mode:
-            # Check connection is still alive
-            if _mt5.terminal_info() is None:
-                logger.warning("MT5 connection lost — attempting reconnect...")
-                self._session = None
-                return {}
+        # Mock mode — return hardcoded prices so demo mode fully works
+        if self.mock_mode or not _MT5_AVAILABLE:
+            mock_prices = {
+                "EURUSD": {"bid": 1.10000, "ask": 1.10009, "spread": 0.00009, "last": 1.10000, "volume": 100, "time": 1714000000},
+                "GBPUSD": {"bid": 1.34900, "ask": 1.34912, "spread": 0.00012, "last": 1.34900, "volume": 100, "time": 1714000000},
+                "XAUUSD": {"bid": 2350.00, "ask": 2350.50, "spread": 0.50,    "last": 2350.00, "volume": 10,  "time": 1714000000},
+                "USDJPY": {"bid": 154.500, "ask": 154.510, "spread": 0.010,   "last": 154.500, "volume": 100, "time": 1714000000},
+                "US30":   {"bid": 39000.0, "ask": 39005.0, "spread": 5.0,     "last": 39000.0, "volume": 10,  "time": 1714000000},
+            }
+            return mock_prices.get(symbol, {"bid": 1.10000, "ask": 1.10009, "spread": 0.00009, "last": 1.10000, "volume": 100, "time": 1714000000})
 
-            # Select symbol first
-            _mt5.symbol_select(symbol, True)
-            t = _mt5.symbol_info_tick(symbol)
-            if t is not None:
-                info = t._asdict()
-                spread = round(info.get("ask", 0) - info.get("bid", 0), 5)
-                info["spread"] = spread
-                return info
+        # Real MT5 path — only reached when connected to live broker
+        if _mt5.terminal_info() is None:
+            logger.warning("MT5 connection lost — attempting reconnect...")
+            self._session = None
+            return {}
+        _mt5.symbol_select(symbol, True)
+        t = _mt5.symbol_info_tick(symbol)
+        if t is not None:
+            info   = t._asdict()
+            spread = round(info.get("ask", 0) - info.get("bid", 0), 5)
+            info["spread"] = spread
+            return info
         return {}
  
         # Alpha Vantage fallback
