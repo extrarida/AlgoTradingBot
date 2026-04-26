@@ -298,6 +298,12 @@ body {
   margin-bottom:  0.35rem;
 }
 
+<<<<<<< HEAD
+=======
+.positive { color: var(--profit) !important; }
+.negative { color: var(--loss)   !important;}
+
+>>>>>>> origin/main
 .stat-value {
   font-size:      1.3rem;
   font-weight:    600;
@@ -429,9 +435,12 @@ td {
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: rgba(26,42,62,0.6); color: var(--text); }
 
+<<<<<<< HEAD
 .positive { color: var(--profit) !important; }
 .negative { color: var(--loss)   !important; font-size: inherit; }
 
+=======
+>>>>>>> origin/main
 /* ── Form fields ──────────────────────────────────────────────── */
 .form-field {
   display:        flex;

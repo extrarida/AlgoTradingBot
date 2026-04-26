@@ -3,6 +3,10 @@ algobot.db-shm
 algobot.db-wal
 __pycache__/
 *.pyc
-venv/
 .env
-.DS_Store
+env/
+*.db
+.venv/
+venv/
+**/venv/
+**/.venv/

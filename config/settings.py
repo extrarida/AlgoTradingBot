@@ -30,19 +30,6 @@ class Settings(BaseSettings):
     MT5_PATH:    Optional[str] = None
     MT5_TIMEOUT: int           = 60000
 
-    # ── External Market Data API ──────────────────────────────────────────────
-    EXTERNAL_API_PROVIDER:    str  = "alpha_vantage"
-    EXTERNAL_API_BASE_URL:    str  = "https://www.alphavantage.co/query"
-    EXTERNAL_API_KEY:         Optional[str] = None
-    TWELVEDATA_BASE_URL:      str  = "https://api.twelvedata.com"
-    TWELVEDATA_API_KEY:       Optional[str] = None
-    EXCHANGE_RATE_HOST_BASE_URL: str = "https://api.exchangerate.host"
-    EXTERNAL_API_TIMEOUT:     int  = 10
-
-    # ── Fallback behavior ─────────────────────────────────────────────────────
-    FALLBACK_RETRIES:         int   = 2
-    FALLBACK_RETRY_DELAY_SEC: float = 0.5
-
     # ── Risk ─────────────────────────────────────────────────────────────────
     DEFAULT_LOT_SIZE:          float = 0.01
     MAX_LOT_SIZE:              float = 1.0
@@ -53,8 +40,8 @@ class Settings(BaseSettings):
     RISK_PER_TRADE_PCT:        float = 1.0
 
     # ── Strategy engine ───────────────────────────────────────────────────────
-    MIN_STRATEGY_VOTES:         int   = 3
-    CONFIDENCE_THRESHOLD:       float = 0.60
+    MIN_STRATEGY_VOTES:         int   = 3 #3
+    CONFIDENCE_THRESHOLD:       float = 0.60 #0.60
     STRATEGY_EVAL_INTERVAL_SEC: int   = 60
 
     # ── CORS ─────────────────────────────────────────────────────────────────

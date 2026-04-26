@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AlgoTrader — Performance</title>
 <link rel="stylesheet" href="/static/css/styling.css">
+<<<<<<< HEAD
+=======
+<link rel="stylesheet" href="/static/css/guide.css">
+>>>>>>> origin/main
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   body { display:flex; min-height:100vh; }
@@ -24,7 +28,11 @@
 <nav class="sidebar">
   <div class="sidebar-logo">
     <div class="logo-icon">⚡</div>
+<<<<<<< HEAD
     <div><div class="logo-name">AlgoTrader</div><div class="logo-ver">v2.0 · 40 Strategies</div></div>
+=======
+    <div><div class="logo-name">AlgoTrader</div><div class="logo-ver"></div></div>
+>>>>>>> origin/main
   </div>
   <div class="nav-section-label">Navigation</div>
   <a href="/dashboard"   class="nav-link"><span class="nav-icon">📊</span> Dashboard</a>
@@ -33,6 +41,12 @@
   <a href="/risk"        class="nav-link"><span class="nav-icon">🛡️</span> Risk Manager</a>
   <div class="sidebar-bottom">
     <div class="connection-badge"><div class="dot"></div><span>Mock Mode</span></div>
+<<<<<<< HEAD
+=======
+    <button class="guide-sidebar-btn" onclick="window.launchTour()">
+      <span>📖</span> App Guide
+    </button>
+>>>>>>> origin/main
     <button class="btn-disconnect" onclick="window.location.href='/'">Disconnect</button>
   </div>
 </nav>
@@ -72,8 +86,114 @@
     </div>
   </div>
 </main>
+<<<<<<< HEAD
 
 <script>
+=======
+<script src="/static/js/guide.js"></script>
+<script>
+
+const PERFORMANCE_STEPS = [
+  {
+    selector: '.stats-grid',
+    title:    'Session Performance',
+    position: 'bottom',
+    body:     `Key metrics showing how the bot has performed this session at a glance.
+               These are <strong>live numbers</strong> based on currently open positions.`
+  },
+  {
+    selector: '.stats-grid .stat-tile:nth-child(1)',
+    title:    'Session P&L',
+    position: 'bottom',
+    body:     `The <strong>total floating profit or loss</strong> across all open trades right now.
+               Positive means you're currently winning. This changes as prices move.`
+  },
+  {
+    selector: '.stats-grid .stat-tile:nth-child(2)',
+    title:    'Open Positions',
+    position: 'bottom',
+    body:     `How many trades are <strong>currently active</strong>. More positions means
+               more exposure to market movement — both risk and potential reward.`
+  },
+  {
+    selector: '.stats-grid .stat-tile:nth-child(3)',
+    title:    'Buy / Sell Split',
+    position: 'bottom',
+    body:     `The <strong>ratio of buy trades to sell trades</strong> this session.
+               A balanced split means the bot is trading both directions.
+               A heavy lean one way reflects a directional market trend.`
+  },
+  {
+    selector: '.stats-grid .stat-tile:nth-child(4)',
+    title:    'Strategies Evaluated',
+    position: 'bottom',
+    body:     `Every time the signal refreshes, this many strategies run simultaneously.
+               All <strong>40 strategies</strong> evaluate the market and cast their vote
+               on every refresh cycle.`
+  },
+  {
+    selector: '#signalChart',
+    title:    'Signal Vote Distribution',
+    position: 'right',
+    body:     `This donut chart shows how the <strong>40 strategies split their votes</strong>
+               on the most recent signal evaluation. Green = Buy votes, Red = Sell votes,
+               Grey = Hold/None votes. A dominant colour means strong agreement.`
+  },
+  {
+    selector: '#pnlChart',
+    title:    'Position P&L Chart',
+    position: 'left',
+    body:     `A bar chart showing the <strong>profit or loss of each open trade</strong>.
+               Green bars are winning trades, red bars are losing ones.
+               The height of each bar shows how much is being won or lost.`
+  },
+  {
+    selector: '#strategyBreakdown',
+    title:    'Top Strategies',
+    position: 'top',
+    body:     `The specific strategies that <strong>drove the most recent signal</strong>,
+               ranked by their individual confidence scores. This shows you exactly
+               which analytical methods triggered the bot's decision.`
+  },
+  {
+    selector: '#accountMetrics',
+    title:    'Account Metrics',
+    position: 'top',
+    body:     `A detailed breakdown of your account state — <strong>Balance, Equity,
+               Free Margin, Margin Used, Floating P&L, and Currency</strong>.
+               Free Margin is the money available to open new trades.`
+  },
+];
+ 
+const PERFORMANCE_CARD_TOOLTIPS = [
+  {
+    selector: '.card:has(#signalChart)',
+    title:    'Signal Distribution',
+    body:     'How the 40 strategies voted on the last signal refresh. Larger green = stronger buy signal.'
+  },
+  {
+    selector: '.card:has(#pnlChart)',
+    title:    'Position P&L',
+    body:     'Profit/loss per open trade. Green = winning, Red = losing.'
+  },
+  {
+    selector: '.card:has(#strategyBreakdown)',
+    title:    'Strategy Breakdown',
+    body:     'Which specific strategies drove the latest signal and their confidence levels.'
+  },
+  {
+    selector: '.card:has(#accountMetrics)',
+    title:    'Account Metrics',
+    body:     'Full account details including balance, equity, and available margin.'
+  },
+];
+ 
+document.addEventListener('DOMContentLoaded', () => {
+  initGuide(PERFORMANCE_STEPS, 'performance');
+  initCardTooltips(PERFORMANCE_CARD_TOOLTIPS);
+});
+
+>>>>>>> origin/main
 const API = 'http://localhost:8000';
 let signalChart = null, pnlChart = null;
 

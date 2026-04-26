@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AlgoTrader — Trade History</title>
 <link rel="stylesheet" href="/static/css/styling.css">
+<<<<<<< HEAD
+=======
+<link rel="stylesheet" href="/static/css/guide.css">
+>>>>>>> origin/main
 <style>
   body { display:flex; min-height:100vh; }
   .main { margin-left:220px; flex:1; padding:1.75rem 2rem; }
@@ -14,7 +18,11 @@
 <nav class="sidebar">
   <div class="sidebar-logo">
     <div class="logo-icon">⚡</div>
+<<<<<<< HEAD
     <div><div class="logo-name">AlgoTrader</div><div class="logo-ver">v2.0 · 40 Strategies</div></div>
+=======
+    <div><div class="logo-name">AlgoTrader</div><div class="logo-ver"></div></div>
+>>>>>>> origin/main
   </div>
   <div class="nav-section-label">Navigation</div>
   <a href="/dashboard"   class="nav-link"><span class="nav-icon">📊</span> Dashboard</a>
@@ -23,6 +31,12 @@
   <a href="/risk"        class="nav-link"><span class="nav-icon">🛡️</span> Risk Manager</a>
   <div class="sidebar-bottom">
     <div class="connection-badge"><div class="dot"></div><span>Mock Mode</span></div>
+<<<<<<< HEAD
+=======
+    <button class="guide-sidebar-btn" onclick="window.launchTour()">
+      <span>📖</span> App Guide
+    </button>
+>>>>>>> origin/main
     <button class="btn-disconnect" onclick="window.location.href='/'">Disconnect</button>
   </div>
 </nav>
@@ -62,8 +76,94 @@
     <div id="historyTable"><div class="empty">No trades recorded yet. Place trades from the Dashboard.</div></div>
   </div>
 </main>
+<<<<<<< HEAD
 
 <script>
+=======
+<script src="/static/js/guide.js"></script>
+<script>
+
+const HISTORY_STEPS = [
+  {
+    selector: '.stats-grid',
+    title:    'Trade Summary',
+    position: 'bottom',
+    body:     `A quick count of all trades this session — <strong>total placed</strong>,
+               how many were buys, how many were sells, and how many are still open right now.`
+  },
+  {
+    selector: '.stats-grid .stat-tile:nth-child(1)',
+    title:    'Total Trades',
+    position: 'bottom',
+    body:     `Every trade placed through the bot this session, whether manually or automatically.
+               Each BUY or SELL counts as one trade.`
+  },
+  {
+    selector: '.stats-grid .stat-tile:nth-child(2)',
+    title:    'Buy Orders',
+    position: 'bottom',
+    body:     `How many of your trades were <strong>Buy positions</strong> — bets that the price
+               would go up. Shown in green.`
+  },
+  {
+    selector: '.stats-grid .stat-tile:nth-child(3)',
+    title:    'Sell Orders',
+    position: 'bottom',
+    body:     `How many of your trades were <strong>Sell positions</strong> — bets that the price
+               would go down. Shown in red.`
+  },
+  {
+    selector: '.stats-grid .stat-tile:nth-child(4)',
+    title:    'Currently Open',
+    position: 'bottom',
+    body:     `Trades that are <strong>still active</strong> right now — not yet closed.
+               These are the ones with live floating profit or loss.`
+  },
+  {
+    selector: '#openTable',
+    title:    'Open Positions',
+    position: 'top',
+    body:     `Your <strong>currently active trades</strong>. Each shows the ticket number (unique ID),
+               symbol, direction, volume, entry price, current price, stop loss, take profit,
+               and live profit or loss.`
+  },
+  {
+    selector: '#historyTable',
+    title:    'All Trade History',
+    position: 'top',
+    body:     `<strong>Every trade ever recorded</strong> by the bot, including closed ones.
+               Closed trades show the exit price, realised profit/loss, and how they closed
+               (stop loss hit, take profit reached, or manually closed).`
+  },
+  {
+    selector: '#filterSymbol',
+    title:    'Filters',
+    position: 'bottom',
+    body:     `Filter the history by <strong>symbol</strong> (e.g. only EURUSD trades) or by
+               <strong>type</strong> (only buys or only sells). Useful for reviewing how the bot
+               performed on a specific market.`
+  },
+];
+ 
+const HISTORY_CARD_TOOLTIPS = [
+  {
+    selector: '.card:has(#openTable)',
+    title:    'Open Positions',
+    body:     'Currently active trades with live P&L. These haven\'t been closed yet.'
+  },
+  {
+    selector: '.card:has(#historyTable)',
+    title:    'Trade History',
+    body:     'All trades from the database including closed ones. Persists across server restarts.'
+  },
+];
+ 
+document.addEventListener('DOMContentLoaded', () => {
+  initGuide(HISTORY_STEPS, 'history');
+  initCardTooltips(HISTORY_CARD_TOOLTIPS);
+});
+
+>>>>>>> origin/main
 const API = 'http://localhost:8000';
 let allPositions = [];
 
