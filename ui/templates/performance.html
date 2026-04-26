@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlgoTrader — Performance</title>
+<link rel="stylesheet" href="/static/css/styling.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  body { display:flex; min-height:100vh; }
+  .main { margin-left:220px; flex:1; padding:1.75rem 2rem; }
+  .strat-row { display:flex; align-items:flex-start; justify-content:space-between; padding:0.55rem 0; border-bottom:1px solid rgba(30,42,58,0.6); }
+  .strat-row:last-child { border-bottom:none; }
+  .strat-name { font-family:var(--mono); font-size:0.78rem; color:var(--text-dim); }
+  .strat-reason { font-size:0.72rem; color:var(--muted); margin-top:0.15rem; line-height:1.4; }
+  .strat-pct { font-family:var(--mono); font-size:0.8rem; color:var(--accent); font-weight:500; flex-shrink:0; margin-left:1rem; }
+  .metric-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:0.75rem; }
+  .metric-tile { border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.875rem 1rem; }
+  .metric-key { font-size:0.7rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.3rem; }
+  .metric-val { font-size:1.1rem; font-weight:700; font-family:var(--mono); color:var(--text); }
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">⚡</div>
+    <div><div class="logo-name">AlgoTrader</div><div class="logo-ver">v2.0 · 40 Strategies</div></div>
+  </div>
+  <div class="nav-section-label">Navigation</div>
+  <a href="/dashboard"   class="nav-link"><span class="nav-icon">📊</span> Dashboard</a>
+  <a href="/history"     class="nav-link"><span class="nav-icon">📜</span> Trade History</a>
+  <a href="/performance" class="nav-link active"><span class="nav-icon">📈</span> Performance</a>
+  <a href="/risk"        class="nav-link"><span class="nav-icon">🛡️</span> Risk Manager</a>
+  <div class="sidebar-bottom">
+    <div class="connection-badge"><div class="dot"></div><span>Mock Mode</span></div>
+    <button class="btn-disconnect" onclick="window.location.href='/'">Disconnect</button>
+  </div>
+</nav>
+
+<main class="main">
+  <div class="page-title">Performance Analytics</div>
+  <div class="page-sub">Session metrics · strategy breakdown · signal analysis</div>
+
+  <div class="stats-grid">
+    <div class="stat-tile"><div class="stat-label">Session P&L</div><div class="stat-value" id="sessionPnl">$0.00</div><div class="stat-delta">unrealised</div></div>
+    <div class="stat-tile"><div class="stat-label">Open Positions</div><div class="stat-value" id="openCount">0</div><div class="stat-delta">active trades</div></div>
+    <div class="stat-tile"><div class="stat-label">Buy / Sell</div><div class="stat-value" id="buySellSplit">0 / 0</div><div class="stat-delta">this session</div></div>
+    <div class="stat-tile"><div class="stat-label">Strategies</div><div class="stat-value" id="strategiesEval">40</div><div class="stat-delta">evaluated per signal</div></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Signal Vote Distribution</div>
+      <canvas id="signalChart"></canvas>
+      <div id="signalSummary" style="margin-top:0.875rem;font-family:var(--mono);font-size:0.78rem;color:var(--muted);line-height:1.6;"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Position P&L</div>
+      <canvas id="pnlChart"></canvas>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:1.25rem;">
+    <div class="card-title">Top Strategy Signals — EURUSD</div>
+    <div id="strategyBreakdown"><div class="empty">Loading strategy analysis...</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Account Metrics</div>
+    <div class="metric-grid" id="accountMetrics">
+      <div class="empty">Loading...</div>
+    </div>
+  </div>
+</main>
+
+<script>
+const API = 'http://localhost:8000';
+let signalChart = null, pnlChart = null;
+
+async function loadPerformance() {
+  try {
+    const posRes  = await fetch(`${API}/api/positions`);
+    const posData = await posRes.json();
+    const positions = posData.positions || [];
+    const totalPnl  = positions.reduce((s,p) => s+(p.profit||0), 0);
+    const buys  = positions.filter(p => p.type===0).length;
+    const sells = positions.filter(p => p.type===1).length;
+
+    const pnlEl = document.getElementById('sessionPnl');
+    pnlEl.textContent  = (totalPnl>=0?'+$':'-$') + Math.abs(totalPnl).toFixed(2);
+    pnlEl.className    = 'stat-value ' + (totalPnl>=0?'positive':'negative');
+    document.getElementById('openCount').textContent   = positions.length;
+    document.getElementById('buySellSplit').textContent = buys + ' / ' + sells;
+
+    // P&L chart
+    if (pnlChart) pnlChart.destroy();
+    if (positions.length > 0) {
+      pnlChart = new Chart(document.getElementById('pnlChart'), {
+        type: 'bar',
+        data: {
+          labels: positions.map(p => `#${p.ticket}`),
+          datasets: [{ data: positions.map(p => p.profit||0), backgroundColor: positions.map(p => (p.profit||0)>=0?'rgba(34,211,165,0.6)':'rgba(244,63,94,0.6)'), borderRadius:4 }]
+        },
+        options: { responsive:true, plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#64748b',font:{family:'JetBrains Mono',size:10}},grid:{color:'rgba(30,42,58,0.7)'}}, y:{ticks:{color:'#64748b',font:{family:'JetBrains Mono',size:10}},grid:{color:'rgba(30,42,58,0.7)'}} } }
+      });
+    } else {
+      document.getElementById('pnlChart').parentElement.innerHTML = '<div class="card-title">Position P&L</div><div class="empty">Place trades from the Dashboard to see P&L here.</div>';
+    }
+
+    // Signal analysis
+    const sigRes  = await fetch(`${API}/api/signal/EURUSD`);
+    const sigData = await sigRes.json();
+    document.getElementById('strategiesEval').textContent = sigData.total_evaluated || 40;
+
+    if (signalChart) signalChart.destroy();
+    signalChart = new Chart(document.getElementById('signalChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Buy', 'Sell', 'Hold'],
+        datasets: [{ data: [sigData.buy_votes, sigData.sell_votes, sigData.none_votes], backgroundColor:['rgba(34,211,165,0.65)','rgba(244,63,94,0.65)','rgba(100,116,139,0.35)'], borderColor:['#22d3a5','#f43f5e','#475569'], borderWidth:1 }]
+      },
+      options: { responsive:true, cutout:'62%', plugins:{ legend:{ labels:{ color:'#94a3b8', font:{family:'JetBrains Mono',size:11} } } } }
+    });
+
+    const finalColor = sigData.final_signal==='BUY'?'var(--accent)':sigData.final_signal==='SELL'?'#fca5a5':'var(--muted)';
+    document.getElementById('signalSummary').innerHTML =
+      `Final signal: <strong style="color:${finalColor}">${sigData.final_signal}</strong> &nbsp;·&nbsp; Confidence: <strong>${sigData.confidence}%</strong> &nbsp;·&nbsp; ${sigData.total_evaluated} strategies evaluated`;
+
+    // Top strategies
+    const topEl = document.getElementById('strategyBreakdown');
+    if (sigData.top_strategies && sigData.top_strategies.length > 0) {
+      topEl.innerHTML = sigData.top_strategies.map(s => `
+        <div class="strat-row">
+          <div><div class="strat-name">${s.name}</div><div class="strat-reason">${s.reason}</div></div>
+          <div class="strat-pct">${s.confidence}%</div>
+        </div>`).join('');
+    } else {
+      topEl.innerHTML = '<div class="empty">No strong signals — market may be ranging</div>';
+    }
+
+    // Account
+    const accRes  = await fetch(`${API}/api/account`);
+    const a       = await accRes.json();
+    document.getElementById('accountMetrics').innerHTML = [
+      ['Balance',     '$' + Number(a.balance).toFixed(2)],
+      ['Equity',      '$' + Number(a.equity).toFixed(2)],
+      ['Free Margin', '$' + Number(a.free_margin).toFixed(2)],
+      ['Margin Used', '$' + Number(a.margin).toFixed(2)],
+      ['Float P&L',   (a.profit>=0?'+$':'-$') + Math.abs(a.profit).toFixed(2)],
+      ['Currency',    a.currency||'USD'],
+    ].map(([k,v]) => `
+      <div class="metric-tile">
+        <div class="metric-key">${k}</div>
+        <div class="metric-val">${v}</div>
+      </div>`).join('');
+
+  } catch(e) { console.error(e); }
+}
+
+loadPerformance();
+setInterval(loadPerformance, 15000);
+</script>
+</body>
+</html>

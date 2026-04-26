@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlgoTrader — Connect</title>
+<link rel="stylesheet" href="/static/css/styling.css">
+<style>
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+  }
+
+  /* Subtle grid overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,170,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,170,0.02) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+
+  .card {
+    width: 380px;
+    position: relative;
+    z-index: 1;
+    animation: rise 0.4s cubic-bezier(0.16,1,0.3,1) both;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .login-logo { display:flex; align-items:center; gap:0.65rem; margin-bottom:1.5rem; }
+  .login-logo-icon { width:34px; height:34px; background:linear-gradient(135deg,var(--accent),var(--accent2)); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:0.95rem; }
+  .login-logo-name { font-size:0.95rem; font-weight:600; letter-spacing:-0.01em; }
+  .login-logo-sub  { font-size:0.65rem; color:var(--muted); font-family:var(--mono); margin-top:0.1rem; }
+
+  h1 { font-size:1.1rem; font-weight:600; letter-spacing:-0.02em; margin-bottom:0.2rem; }
+  .subtitle { font-size:0.8rem; color:var(--muted); margin-bottom:1.1rem; line-height:1.5; }
+
+  .demo-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(0,212,170,0.07);
+    border: 1px solid rgba(0,212,170,0.15);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    padding: 0.22rem 0.55rem;
+    border-radius: 20px;
+    margin-bottom: 1.1rem;
+  }
+
+  .demo-pill::before {
+    content: '';
+    width: 5px; height: 5px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: blink 2.5s ease-in-out infinite;
+  }
+
+  .field { margin-bottom: 0.8rem; }
+
+  label {
+    display: block;
+    font-size: 0.67rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.28rem;
+  }
+
+  input[type="number"],
+  input[type="password"],
+  input[type="text"] {
+    width: 100%;
+    background: var(--bg-deeper);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0.55rem 0.75rem;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.1s, box-shadow 0.1s;
+  }
+
+  input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(0,212,170,0.07);
+  }
+
+  input::placeholder { color: var(--muted); }
+
+  /* Demo mode checkbox row */
+  .demo-check-row {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: 0.8rem;
+    margin-top: 0.2rem;
+    padding: 0.55rem 0.65rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+  }
+
+  .demo-check-row input[type="checkbox"] {
+    width: auto;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .demo-check-row label {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    text-transform: none;
+    letter-spacing: 0;
+    cursor: pointer;
+    margin: 0;
+    font-weight: 400;
+  }
+
+  .demo-check-row label span {
+    color: var(--muted);
+    font-size: 0.72rem;
+  }
+
+  .btn-connect {
+    width: 100%;
+    padding: 0.62rem;
+    margin-top: 0.2rem;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: var(--bg);
+    font-family: var(--sans);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+
+  .btn-connect:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 16px rgba(0,212,170,0.18);
+  }
+
+  .btn-connect:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+
+  .error-msg {
+    background: rgba(255,77,106,0.07);
+    border: 1px solid rgba(255,77,106,0.18);
+    color: #ff8099;
+    border-radius: var(--radius-sm);
+    padding: 0.55rem 0.75rem;
+    font-size: 0.78rem;
+    font-family: var(--mono);
+    margin-top: 0.65rem;
+    display: none;
+    line-height: 1.5;
+  }
+
+  .spinner {
+    display: none;
+    width: 15px; height: 15px;
+    border: 2px solid rgba(13,20,33,0.3);
+    border-top-color: var(--bg);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.1rem 0 0.875rem;
+  }
+
+  .help-text {
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.6;
+    font-family: var(--mono);
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="login-logo">
+    <div class="login-logo-icon">⚡</div>
+    <div>
+      <div class="login-logo-name">AlgoTrader</div>
+      <div class="login-logo-sub">v2.0 · 40-Strategy Engine</div>
+    </div>
+  </div>
+
+  <h1>Connect to Broker</h1>
+  <p class="subtitle">Enter your MT5 credentials or use Demo Mode to explore with simulated data.</p>
+
+  <form id="loginForm">
+    <div class="field">
+      <label>Account Number</label>
+      <input type="number" id="login" placeholder="e.g. 12345678" value="12345678" required>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="password" placeholder="Your MT5 password" value="demo" required>
+    </div>
+    <div class="field">
+      <label>Broker Server</label>
+      <input type="text" id="server" placeholder="e.g. ICMarkets-Demo" value="MockBroker" required>
+    </div>
+
+    <!-- Demo mode toggle -->
+    <div class="demo-check-row" onclick="document.getElementById('demoMode').click()">
+      <input type="checkbox" id="demoMode">
+      <label for="demoMode" onclick="event.stopPropagation()">
+        Use Demo Mode <span>— simulated data, no MT5 required</span>
+      </label>
+    </div>
+
+    <button type="submit" class="btn-connect" id="connectBtn">
+      <span id="btnText">Connect</span>
+      <div class="spinner" id="spinner"></div>
+    </button>
+    <div class="error-msg" id="errorMsg"></div>
+  </form>
+
+  <hr class="divider">
+  <div class="help-text">
+    Real MT5 connection requires the MetaTrader 5 desktop app to be open and running on Windows.
+    On Mac/Linux, Demo Mode is used automatically.
+  </div>
+</div>
+
+<script>
+  const API = 'http://localhost:8000';
+
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn     = document.getElementById('connectBtn');
+    const btnText = document.getElementById('btnText');
+    const spinner = document.getElementById('spinner');
+    const errMsg  = document.getElementById('errorMsg');
+
+    btn.disabled          = true;
+    btnText.style.display = 'none';
+    spinner.style.display = 'block';
+    errMsg.style.display  = 'none';
+
+    try {
+      const res = await fetch(`${API}/api/connect`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          login:     parseInt(document.getElementById('login').value),
+          password:  document.getElementById('password').value,
+          server:    document.getElementById('server').value,
+          demo_mode: document.getElementById('demoMode').checked,
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        localStorage.setItem('account',      JSON.stringify(data.account));
+        localStorage.setItem('mock_mode',    data.mock_mode ? 'true' : 'false');
+        localStorage.setItem('session_type', data.mock_mode ? 'mock' : 'live');
+        window.location.href = '/dashboard';
+
+      } else if (res.status === 503) {
+        errMsg.innerHTML    = '<strong>MetaTrader 5 is not running.</strong><br>Please open the MT5 application, log in to your broker account inside it, then try again. Or tick "Use Demo Mode" to continue without MT5.';
+        errMsg.style.display = 'block';
+        btn.disabled          = false;
+        btnText.style.display = 'block';
+        spinner.style.display = 'none';
+
+      } else {
+        throw new Error(data.detail || 'Connection failed');
+      }
+
+    } catch (err) {
+      errMsg.textContent    = err.message;
+      errMsg.style.display  = 'block';
+      btn.disabled          = false;
+      btnText.style.display = 'block';
+      spinner.style.display = 'none';
+    }
+  });
+</script>
+</body>
+</html>

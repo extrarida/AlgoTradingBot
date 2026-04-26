@@ -1,0 +1,62 @@
+FILE: config/settings.py
+LOCATION: config/ folder
+
+WHAT IT DOES:
+This file stores all the settings and configuration for the entire bot.
+Think of it like the control panel — every number, limit, and option the
+bot uses is defined here in one place.
+
+HOW IT HELPS:
+Instead of searching through 10 different files to change a setting,
+you change it here and it applies everywhere automatically.
+
+SECTIONS EXPLAINED:
+
+App Settings:
+  - APP_NAME and VERSION: The name and version of the bot.
+  - DEBUG: Set to True to see extra information while testing.
+
+Security Settings:
+  - SECRET_KEY: Used to protect the login system. Change this before
+    going live.
+  - ACCESS_TOKEN_EXPIRE_MINUTES: How long before you get logged out
+    automatically. Default is 120 minutes.
+
+Database Settings:
+  - DATABASE_URL: Where the bot stores its trade history and logs.
+    Default is a local SQLite file called algobot.db.
+
+MetaTrader 5 Settings:
+  - MT5_PATH: Location of the MT5 installation. Leave as None for default.
+  - MT5_TIMEOUT: How long to wait for MT5 to respond (in milliseconds).
+
+Risk Settings (IMPORTANT):
+  - DEFAULT_LOT_SIZE: How many lots to trade per order. Default is 0.01
+    (micro lot). Increase this to trade bigger sizes.
+  - MAX_LOT_SIZE: Maximum allowed lot size. Safety cap.
+  - DEFAULT_STOP_LOSS_PIPS: How many pips away to set the stop loss.
+  - DEFAULT_TAKE_PROFIT_PIPS: How many pips away to set the take profit.
+  - MAX_TRADES_PER_DAY: The bot will stop trading after this many trades
+    in a single day.
+  - MAX_DRAWDOWN_PCT: If your account drops by this percentage from its
+    peak, the bot stops trading automatically.
+  - RISK_PER_TRADE_PCT: What percentage of your account to risk per trade.
+
+Strategy Engine Settings:
+  - MIN_STRATEGY_VOTES: Minimum number of strategies that must agree
+    before a trade is placed. Default is 3.
+  - CONFIDENCE_THRESHOLD: Minimum average confidence level (0 to 1)
+    required. Default is 0.60 meaning 60%.
+  - STRATEGY_EVAL_INTERVAL_SEC: How often the strategies run. Default
+    is every 60 seconds.
+
+HOW TO CHANGE SETTINGS:
+Create a .env file in your project root and add lines like:
+  MT5_LOGIN=260712744
+  MT5_PASSWORD=yourpassword
+  MT5_SERVER=Exness-MT5Trial15
+  MAX_TRADES_PER_DAY=10
+  DEFAULT_LOT_SIZE=0.01
+
+The settings.py file reads from .env automatically. You never need to
+edit settings.py directly.

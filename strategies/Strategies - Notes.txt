@@ -1,0 +1,84 @@
+BUY STRATEGIES  (B01 – B20)
+
+B01  RSI Oversold Bounce  —  RSI drops below 30 then recovers  ·  Price has fallen too far too fast. When it starts coming back up, the bot sees it as a good time to buy before others notice.
+
+B02  MACD Bullish Crossover  —  MACD line crosses above signal line  ·  Two lines on a chart cross each other in a way that shows buying energy is picking up. Think of it as a green light for the upward direction.
+
+B03  EMA Fast/Slow Crossover  —  9-period EMA crosses above 21-period EMA  ·  A faster price average overtakes a slower one — like a sprinter pulling ahead. It means the short-term direction has turned upward.
+
+B04  Bollinger Band Lower Touch  —  Price touches lower band then closes inside  ·  Price briefly touched an unusually low level and then bounced back. Like a rubber band stretched too far — it snaps back toward the middle.
+
+B05  200 EMA Trend Filter  —  Price above 200 EMA and RSI dips below 40  ·  The overall market direction is up. Price dipped a little. The bot buys the dip — like buying something on a small sale when you know the long-term trend is rising.
+
+B06  Stochastic Oversold Cross  —  Stochastic %K crosses above %D below 20  ·  A speed gauge shows the market was moving down very fast and is now slowing and turning. A quick buy signal before price reverses upward.
+
+B07  Inside Bar Breakout  —  Price breaks above a prior consolidation bar  ·  Price was stuck in a narrow range (like holding its breath). When it breaks upward out of that range, it signals a fresh move is starting.
+
+B08  Hammer Candlestick  —  Long lower shadow, small body near the top  ·  During a candle, price dropped sharply but buyers pushed it almost all the way back up. It looks like a hammer — a sign that sellers tried and failed.
+
+B09  ADX Trend Pullback  —  ADX above 25 and price near the 21 EMA  ·  The market is in a strong clear uptrend. Price briefly dipped toward its average. The bot buys this small dip expecting the uptrend to continue.
+
+B10  VWAP Bounce  —  Price near VWAP from above, RSI below 55  ·  VWAP is the average price where most trading happened today. Big institutions watch this level. When price dips to it and holds, it is a reliable buy point.
+
+B11  Triple EMA Alignment  —  EMA5 > EMA13 > EMA34 and price near EMA5  ·  Three different speed averages are all pointing up in perfect order. It is like three traffic lights all turning green at once — a strong signal to buy.
+
+B12  Bullish Engulfing  —  A large up candle fully covers the prior down candle  ·  Yesterday the price fell. Today it not only recovered but went even higher — wiping out all of yesterday's loss in one move. Buyers are firmly in charge.
+
+B13  Bollinger Squeeze Breakout  —  Bands tighten then price breaks above upper band  ·  Price had been very calm and flat for a while. When calm breaks and price shoots upward, the bot jumps in — like a coiled spring releasing energy upward.
+
+B14  Higher Highs & Higher Lows  —  5 bars in a row each reaching higher than the last  ·  Every single candle for the past 5 bars is higher than the one before it. Price is climbing steadily — the bot buys into confirmed upward movement.
+
+B15  RSI Bullish Divergence  —  Price makes a lower low but RSI makes a higher low  ·  Price went lower but the selling momentum is actually getting weaker. Like someone pushing harder but moving less — they are about to run out of steam.
+
+B16  Morning Star  —  Big down candle, then tiny candle, then big up candle  ·  Three candles tell a story: sellers were strong, then uncertain, then buyers completely took over. The turning point from down to up.
+
+B17  Momentum Breakout + Volume  —  Volume spikes to 1.5x normal AND price breaks recent high  ·  Price broke to a new high AND unusually high trading activity confirms it. Many people are participating — the move is real, not a fake-out.
+
+B18  Historical Support Bounce  —  Price near a historically strong support level and rising  ·  Price has fallen to a level where buyers have stepped in many times before. History shows this is where buying happens — the bot follows that pattern.
+
+B19  CCI Oversold Recovery  —  CCI drops below -100 then crosses back above  ·  A different way of measuring 'too low'. When price drops unusually far below its average and then starts climbing back, the bot takes it as a buy signal.
+
+B20  Golden Cross (50/200 EMA)  —  The 50-period average crosses above the 200-period average  ·  The biggest long-term bullish signal there is. When the medium-term trend crosses above the long-term trend, big investors around the world start buying.
+
+
+SELL STRATEGIES  (S01 – S20)
+
+S01  RSI Overbought Reversal  —  RSI rises above 70 then falls back  ·  Price has risen too far too fast and is now turning back down. Like a ball thrown too high — gravity brings it back. Time to get out or sell.
+
+S02  MACD Bearish Crossover  —  MACD line crosses below signal line  ·  The same two lines that signal a buy — but this time crossing downward. Buying energy is fading and selling energy is taking over.
+
+S03  EMA Bearish Crossover  —  9-period EMA crosses below 21-period EMA  ·  The fast average drops below the slow average — like a sprinter falling behind. Short-term direction has turned downward.
+
+S04  Bollinger Upper Touch Reversal  —  Price touches upper band then closes inside  ·  Price briefly shot up to an unusually high level and then came back down. Like a rubber band stretched too far upward — it snaps back toward the middle.
+
+S05  Stop-Loss Trigger  —  Price drops 2% below entry price  ·  A simple safety rule: if the trade is losing 2%, exit immediately. Cutting a small loss before it turns into a big one — the most important rule in trading.
+
+S06  Trailing Stop  —  Price falls 1.5% from its peak since entry  ·  As price rises, the exit point rises with it. If price then drops 1.5% from its peak, the bot sells. It locks in most of the profit while letting the trade run as long as possible.
+
+S07  Stochastic Overbought Cross  —  Stochastic %K crosses below %D above 80  ·  A speed gauge shows the market was moving up very fast and is now slowing and turning downward. A quick sell signal before price drops.
+
+S08  Inside Bar Breakdown  —  Price breaks below a prior consolidation bar  ·  Price was stuck in a narrow range. When it breaks downward out of that range, sellers have taken control and a fresh drop is starting.
+
+S09  Shooting Star Candlestick  —  Long upper shadow, small body near the bottom  ·  During a candle, price shot up sharply but sellers pushed it almost all the way back down. It looks like a shooting star — buyers tried and failed.
+
+S10  Bearish Engulfing  —  A large down candle fully covers the prior up candle  ·  Yesterday price rose. Today it not only fell back but went even lower — wiping out all of yesterday's gain. Sellers are firmly in charge.
+
+S11  Death Cross (50/200 EMA)  —  The 50-period average crosses below the 200-period average  ·  The biggest long-term bearish signal there is. The medium-term trend drops below the long-term trend — major investors around the world start selling.
+
+S12  VWAP Rejection  —  Price approaches VWAP from below and fails to break through  ·  Price tried to get back to the daily average but could not. Big sellers are waiting there. The failure to break through is a sign of weakness.
+
+S13  RSI Bearish Divergence  —  Price makes a higher high but RSI makes a lower high  ·  Price keeps going up but buying energy is actually weakening. Like a car going uphill but running out of fuel — it will stall and roll back.
+
+S14  Evening Star  —  Big up candle, then tiny candle, then big down candle  ·  Three candles tell a story: buyers were strong, then uncertain, then sellers completely took over. The turning point from up to down.
+
+S15  Lower Highs Pattern  —  5 bars in a row each lower than the one before  ·  Every single candle for 5 bars is lower than the previous one. Price is falling steadily — the bot sells into confirmed downward movement.
+
+S16  CCI Overbought Reversal  —  CCI rises above +100 then crosses back below  ·  Price has risen unusually far above its recent average. When it starts coming back, the bot reads it as the peak being in — time to sell.
+
+S17  Momentum Breakdown + Volume  —  Volume spikes to 1.5x normal AND price breaks recent low  ·  Price broke to a new low with high trading activity confirming it. Many people are selling — the drop is real and likely to continue.
+
+S18  Historical Resistance Rejection  —  Price near a historically strong resistance level and falling  ·  Price has risen to a level where sellers have appeared many times before. History shows this is where selling happens — the bot follows that pattern.
+
+S19  Bollinger Squeeze Breakdown  —  Bands tighten then price breaks below lower band  ·  Price had been calm and flat for a while. When calm breaks and price shoots downward, the bot sells short — the compressed energy released downward.
+
+S20  Take-Profit Target  —  Price gains 3% above entry price  ·  A simple rule: when the trade is up 3%, sell and take the profit. Stops the very common mistake of waiting too long and watching a winner turn into a loser.

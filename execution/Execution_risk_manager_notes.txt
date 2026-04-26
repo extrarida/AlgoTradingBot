@@ -1,0 +1,53 @@
+FILE: execution/risk_manager.py
+LOCATION: execution/ folder
+
+WHAT IT DOES:
+This file is the safety guard for all trades. Before any trade is
+placed, it runs through a series of checks. If any check fails,
+the trade is blocked completely.
+
+HOW IT HELPS:
+It protects your account from large losses by enforcing strict rules
+automatically. Even if the market signals are strong, the risk manager
+can override and stop a trade from happening.
+
+THE 5 CHECKS (run in order, first failure stops the trade):
+
+  1. Kill Switch Check:
+     Has the emergency stop button been pressed? If yes, no trades allowed.
+     You can activate this from the dashboard to stop all trading instantly.
+
+  2. Daily Limit Check:
+     Has the bot placed the maximum allowed trades today? Default is 20.
+     If yes, trading stops until the next day.
+
+  3. Drawdown Check:
+     Has your account dropped more than 5% from its highest point?
+     If yes, trading stops to protect remaining capital.
+
+  4. Lot Size Check:
+     Is the requested lot size valid? Must be greater than 0 and not
+     exceed the maximum lot size set in settings.
+
+  5. Fat Finger Check:
+     Is the order value more than 50% of your total equity? If yes,
+     it blocks the trade to prevent accidental large orders.
+
+POSITION SIZING:
+The risk manager also calculates the correct lot size based on your
+account balance and stop loss distance, ensuring you only risk a set
+percentage (default 1%) of your account per trade.
+
+KEY FUNCTIONS:
+  - validate_trade(): Runs all 5 checks. Returns approved or rejected.
+  - calc_lot_size(): Calculates safe lot size based on account equity.
+  - activate_kill_switch(): Immediately stops all trading.
+  - record_trade(): Counts each trade toward the daily limit.
+  - current_drawdown_pct(): Shows current drawdown percentage.
+
+SETTINGS YOU CAN CHANGE (in .env file):
+  MAX_TRADES_PER_DAY=20
+  MAX_DRAWDOWN_PCT=5.0
+  RISK_PER_TRADE_PCT=1.0
+  DEFAULT_LOT_SIZE=0.01
+  MAX_LOT_SIZE=1.0

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlgoTrader — Trade History</title>
+<link rel="stylesheet" href="/static/css/styling.css">
+<style>
+  body { display:flex; min-height:100vh; }
+  .main { margin-left:220px; flex:1; padding:1.75rem 2rem; }
+</style>
+</head>
+<body>
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">⚡</div>
+    <div><div class="logo-name">AlgoTrader</div><div class="logo-ver">v2.0 · 40 Strategies</div></div>
+  </div>
+  <div class="nav-section-label">Navigation</div>
+  <a href="/dashboard"   class="nav-link"><span class="nav-icon">📊</span> Dashboard</a>
+  <a href="/history"     class="nav-link active"><span class="nav-icon">📜</span> Trade History</a>
+  <a href="/performance" class="nav-link"><span class="nav-icon">📈</span> Performance</a>
+  <a href="/risk"        class="nav-link"><span class="nav-icon">🛡️</span> Risk Manager</a>
+  <div class="sidebar-bottom">
+    <div class="connection-badge"><div class="dot"></div><span>Mock Mode</span></div>
+    <button class="btn-disconnect" onclick="window.location.href='/'">Disconnect</button>
+  </div>
+</nav>
+
+<main class="main">
+  <div class="page-title">Trade History</div>
+  <div class="page-sub">All executed orders this session</div>
+
+  <div class="stats-grid">
+    <div class="stat-tile"><div class="stat-label">Total Trades</div><div class="stat-value" id="totalTrades">0</div></div>
+    <div class="stat-tile"><div class="stat-label">Buy Orders</div><div class="stat-value positive" id="totalBuys">0</div></div>
+    <div class="stat-tile"><div class="stat-label">Sell Orders</div><div class="stat-value negative" id="totalSells">0</div></div>
+    <div class="stat-tile"><div class="stat-label">Open Now</div><div class="stat-value" id="openNow">0</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Open Positions</div>
+    <div id="openTable"><div class="empty">No open positions this session</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">All Orders — This Session</div>
+      <div style="display:flex;gap:0.5rem;align-items:center;">
+        <div class="form-field" style="flex-direction:row;align-items:center;gap:0.5rem;">
+          <select id="filterSymbol" onchange="applyFilters()" style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.35rem 0.6rem;color:var(--text);font-family:var(--mono);font-size:0.78rem;outline:none;">
+            <option value="">All Symbols</option>
+            <option>EURUSD</option><option>GBPUSD</option><option>USDJPY</option><option>XAUUSD</option><option>US30</option>
+          </select>
+          <select id="filterType" onchange="applyFilters()" style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0.35rem 0.6rem;color:var(--text);font-family:var(--mono);font-size:0.78rem;outline:none;">
+            <option value="">All</option><option value="0">BUY</option><option value="1">SELL</option>
+          </select>
+        </div>
+        <button class="btn btn-ghost" style="font-size:0.78rem;" onclick="loadHistory()">↻</button>
+      </div>
+    </div>
+    <div id="historyTable"><div class="empty">No trades recorded yet. Place trades from the Dashboard.</div></div>
+  </div>
+</main>
+
+<script>
+const API = 'http://localhost:8000';
+let allPositions = [];
+
+async function loadHistory() {
+  try {
+    const res  = await fetch(`${API}/api/positions`);
+    const data = await res.json();
+    allPositions = data.positions || [];
+    const buys  = allPositions.filter(p => p.type === 0).length;
+    const sells = allPositions.filter(p => p.type === 1).length;
+    document.getElementById('totalTrades').textContent = allPositions.length;
+    document.getElementById('totalBuys').textContent   = buys;
+    document.getElementById('totalSells').textContent  = sells;
+    document.getElementById('openNow').textContent     = allPositions.length;
+    renderOpenTable(allPositions);
+    applyFilters();
+  } catch(e) {}
+}
+
+function renderOpenTable(positions) {
+  const el = document.getElementById('openTable');
+  if (!positions.length) { el.innerHTML = '<div class="empty">No open positions</div>'; return; }
+  el.innerHTML = `
+    <table>
+      <thead><tr><th>Ticket</th><th>Symbol</th><th>Type</th><th>Vol</th><th>Open Price</th><th>Current</th><th>SL</th><th>TP</th><th>Profit</th></tr></thead>
+      <tbody>${positions.map(p => `
+        <tr>
+          <td>#${p.ticket}</td><td>${p.symbol}</td>
+          <td><span class="badge ${p.type===0?'badge-buy':'badge-sell'}">${p.type===0?'BUY':'SELL'}</span></td>
+          <td>${p.volume}</td><td>${Number(p.price_open).toFixed(5)}</td><td>${Number(p.price_current).toFixed(5)}</td>
+          <td>${Number(p.sl).toFixed(5)}</td><td>${Number(p.tp).toFixed(5)}</td>
+          <td class="${p.profit>=0?'positive':'negative'}">${p.profit>=0?'+':''}${Number(p.profit).toFixed(2)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function applyFilters() {
+  let f = [...allPositions];
+  const sym  = document.getElementById('filterSymbol').value;
+  const type = document.getElementById('filterType').value;
+  if (sym)       f = f.filter(p => p.symbol === sym);
+  if (type!=='') f = f.filter(p => String(p.type) === type);
+  const el = document.getElementById('historyTable');
+  if (!f.length) { el.innerHTML = '<div class="empty">No matching trades</div>'; return; }
+  el.innerHTML = `
+    <table>
+      <thead><tr><th>Ticket</th><th>Symbol</th><th>Type</th><th>Vol</th><th>Open Price</th><th>SL</th><th>TP</th><th>Profit</th><th>Comment</th></tr></thead>
+      <tbody>${f.map(p => `
+        <tr>
+          <td>#${p.ticket}</td><td>${p.symbol}</td>
+          <td><span class="badge ${p.type===0?'badge-buy':'badge-sell'}">${p.type===0?'BUY':'SELL'}</span></td>
+          <td>${p.volume}</td><td>${Number(p.price_open).toFixed(5)}</td>
+          <td>${Number(p.sl).toFixed(5)}</td><td>${Number(p.tp).toFixed(5)}</td>
+          <td class="${p.profit>=0?'positive':'negative'}">${p.profit>=0?'+':''}${Number(p.profit).toFixed(2)}</td>
+          <td style="color:var(--muted);">${p.comment||'—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+loadHistory();
+setInterval(loadHistory, 10000);
+</script>
+</body>
+</html>

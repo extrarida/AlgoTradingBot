@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlgoTrader — Risk Manager</title>
+<link rel="stylesheet" href="/static/css/styling.css">
+<style>
+  body { display:flex; min-height:100vh; }
+  .main { margin-left:220px; flex:1; padding:1.75rem 2rem; }
+
+  .kill-panel { text-align:center; padding:0.5rem 0 1rem; }
+  .kill-indicator { width:72px; height:72px; border-radius:50%; margin:0 auto 1rem; display:flex; align-items:center; justify-content:center; font-size:1.8rem; border:2px solid; }
+  .kill-indicator.safe   { background:rgba(34,211,165,0.08); border-color:rgba(34,211,165,0.25); }
+  .kill-indicator.danger { background:rgba(244,63,94,0.1);   border-color:rgba(244,63,94,0.3); }
+  .kill-status { font-size:0.9rem; font-weight:600; margin-bottom:1.25rem; }
+
+  .risk-gauge { margin-bottom:1rem; }
+  .risk-gauge-header { display:flex; justify-content:space-between; font-size:0.78rem; margin-bottom:0.35rem; }
+  .risk-gauge-label { color:var(--muted); font-weight:500; }
+  .risk-gauge-val { font-family:var(--mono); color:var(--text-dim); }
+  .gauge-bg { height:6px; background:var(--surface2); border-radius:3px; overflow:hidden; }
+  .gauge-fill { height:100%; border-radius:3px; transition:width 0.5s ease; }
+  .gauge-safe { background:linear-gradient(90deg,var(--accent),#34d399); }
+  .gauge-warn { background:linear-gradient(90deg,var(--warning),#fbbf24); }
+  .gauge-crit { background:linear-gradient(90deg,var(--danger),#fb7185); }
+
+  .check-item { display:flex; align-items:flex-start; gap:0.75rem; padding:0.7rem 0; border-bottom:1px solid rgba(30,42,58,0.6); }
+  .check-item:last-child { border-bottom:none; }
+  .check-icon { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.72rem; flex-shrink:0; margin-top:0.1rem; }
+  .check-pass { background:rgba(34,211,165,0.1); border:1px solid rgba(34,211,165,0.2); color:var(--accent); }
+  .check-fail { background:rgba(244,63,94,0.1); border:1px solid rgba(244,63,94,0.2); color:#fca5a5; }
+  .check-label { font-size:0.85rem; font-weight:500; color:var(--text); }
+  .check-note  { font-size:0.75rem; color:var(--muted); margin-top:0.15rem; font-family:var(--mono); line-height:1.4; }
+
+  .settings-row { display:flex; justify-content:space-between; align-items:center; padding:0.55rem 0; border-bottom:1px solid rgba(30,42,58,0.6); font-size:0.82rem; }
+  .settings-row:last-child { border-bottom:none; }
+  .settings-key { color:var(--text-dim); }
+  .settings-val { font-family:var(--mono); color:var(--accent); }
+
+  .layer-item { padding:0.5rem 0; border-bottom:1px solid rgba(30,42,58,0.5); font-size:0.8rem; line-height:1.5; }
+  .layer-item:last-child { border-bottom:none; }
+  .layer-num { color:var(--accent); font-family:var(--mono); font-weight:500; }
+</style>
+</head>
+<body>
+<div class="toast-container" id="toastContainer"></div>
+
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">⚡</div>
+    <div><div class="logo-name">AlgoTrader</div><div class="logo-ver">v2.0 · 40 Strategies</div></div>
+  </div>
+  <div class="nav-section-label">Navigation</div>
+  <a href="/dashboard"   class="nav-link"><span class="nav-icon">📊</span> Dashboard</a>
+  <a href="/history"     class="nav-link"><span class="nav-icon">📜</span> Trade History</a>
+  <a href="/performance" class="nav-link"><span class="nav-icon">📈</span> Performance</a>
+  <a href="/risk"        class="nav-link active"><span class="nav-icon">🛡️</span> Risk Manager</a>
+  <div class="sidebar-bottom">
+    <div class="connection-badge"><div class="dot"></div><span>Mock Mode</span></div>
+    <button class="btn-disconnect" onclick="window.location.href='/'">Disconnect</button>
+  </div>
+</nav>
+
+<main class="main">
+  <div class="page-title">Risk Manager</div>
+  <div class="page-sub">Pre-trade safety engine · 5-layer protection</div>
+
+  <div class="grid-2">
+    <!-- Kill switch -->
+    <div class="card">
+      <div class="card-title">Emergency Kill Switch</div>
+      <div class="kill-panel">
+        <div class="kill-indicator safe" id="killIndicator">🛡️</div>
+        <div class="kill-status" id="killStatus">All trading <span style="color:var(--accent);">active</span></div>
+        <div style="display:flex;gap:0.75rem;justify-content:center;">
+          <button class="btn btn-danger" onclick="setKillSwitch(true)">⛔ Halt Trading</button>
+          <button class="btn btn-success" onclick="setKillSwitch(false)">✓ Resume</button>
+        </div>
+        <p style="font-size:0.75rem;color:var(--muted);margin-top:0.875rem;line-height:1.6;max-width:280px;margin-inline:auto;">
+          Activating halt immediately blocks all new orders regardless of signal strength or strategy votes.
+        </p>
+      </div>
+    </div>
+
+    <!-- Risk gauges -->
+    <div class="card">
+      <div class="card-title">Current Risk Levels</div>
+      <div id="riskGauges"><div style="color:var(--muted);font-size:0.82rem;">Loading...</div></div>
+    </div>
+  </div>
+
+  <!-- Check list -->
+  <div class="card" style="margin-bottom:1.25rem;">
+    <div class="card-title">Pre-Trade Check Results</div>
+    <div id="checkList"><div style="color:var(--muted);font-size:0.82rem;font-family:var(--mono);">Loading...</div></div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Risk Settings</div>
+      <div id="riskSettings"><div style="color:var(--muted);font-size:0.82rem;">Loading...</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">5-Layer Protection</div>
+      <div>
+        <div class="layer-item"><span class="layer-num">Layer 1</span> — Kill switch. Manually halt all trading instantly.</div>
+        <div class="layer-item"><span class="layer-num">Layer 2</span> — Daily limit. Stop after maximum trades per day.</div>
+        <div class="layer-item"><span class="layer-num">Layer 3</span> — Drawdown. Stop if account drops too far from peak.</div>
+        <div class="layer-item"><span class="layer-num">Layer 4</span> — Lot size. Reject orders outside the allowed range.</div>
+        <div class="layer-item"><span class="layer-num">Layer 5</span> — Fat finger. Reject orders worth more than 50% of account.</div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const API = 'http://localhost:8000';
+
+function toast(msg, type='success') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+async function loadRiskStatus() {
+  try {
+    const res  = await fetch(`${API}/api/risk/status`);
+    const data = await res.json();
+
+    const ind = document.getElementById('killIndicator');
+    const sts = document.getElementById('killStatus');
+    if (data.kill_switch) {
+      ind.className = 'kill-indicator danger'; ind.textContent = '⛔';
+      sts.innerHTML = 'All trading <span style="color:#fca5a5;">halted</span>';
+    } else {
+      ind.className = 'kill-indicator safe'; ind.textContent = '🛡️';
+      sts.innerHTML = 'All trading <span style="color:var(--accent);">active</span>';
+    }
+
+    const tradePct    = data.daily_trades / data.max_trades * 100;
+    const drawdownPct = data.drawdown_pct / data.max_drawdown * 100;
+    const tClass = tradePct > 80 ? 'gauge-crit' : tradePct > 50 ? 'gauge-warn' : 'gauge-safe';
+    const dClass = drawdownPct > 80 ? 'gauge-crit' : drawdownPct > 50 ? 'gauge-warn' : 'gauge-safe';
+
+    document.getElementById('riskGauges').innerHTML = `
+      <div class="risk-gauge">
+        <div class="risk-gauge-header">
+          <span class="risk-gauge-label">Daily Trades</span>
+          <span class="risk-gauge-val">${data.daily_trades} / ${data.max_trades}</span>
+        </div>
+        <div class="gauge-bg"><div class="gauge-fill ${tClass}" style="width:${Math.min(tradePct,100)}%"></div></div>
+      </div>
+      <div class="risk-gauge">
+        <div class="risk-gauge-header">
+          <span class="risk-gauge-label">Drawdown</span>
+          <span class="risk-gauge-val">${data.drawdown_pct}% / ${data.max_drawdown}%</span>
+        </div>
+        <div class="gauge-bg"><div class="gauge-fill ${dClass}" style="width:${Math.min(drawdownPct,100)}%"></div></div>
+      </div>`;
+
+    const checks = [
+      { label:'Kill Switch',       pass:!data.kill_switch,                       note: data.kill_switch?'HALTED — manual override active':'Trading is allowed' },
+      { label:'Daily Trade Limit', pass:data.daily_trades < data.max_trades,     note:`${data.daily_trades} of ${data.max_trades} trades used today` },
+      { label:'Max Drawdown',      pass:data.drawdown_pct < data.max_drawdown,   note:`${data.drawdown_pct}% drawdown (limit: ${data.max_drawdown}%)` },
+      { label:'Lot Size Limits',   pass:true,                                    note:'Min 0.01 lots · Max 1.0 lots' },
+      { label:'Fat Finger Guard',  pass:true,                                    note:'Orders worth >50% of equity are rejected' },
+    ];
+
+    document.getElementById('checkList').innerHTML = checks.map(c => `
+      <div class="check-item">
+        <div class="check-icon ${c.pass?'check-pass':'check-fail'}">${c.pass?'✓':'✗'}</div>
+        <div>
+          <div class="check-label">${c.label}</div>
+          <div class="check-note">${c.note}</div>
+        </div>
+      </div>`).join('');
+
+    document.getElementById('riskSettings').innerHTML = [
+      ['Max Trades / Day',     data.max_trades],
+      ['Max Drawdown',         data.max_drawdown + '%'],
+      ['Min Lot Size',         '0.01'],
+      ['Max Lot Size',         '1.0'],
+      ['Min Strategy Votes',   '3 of 40'],
+      ['Confidence Threshold', '60%'],
+    ].map(([k,v]) => `
+      <div class="settings-row">
+        <span class="settings-key">${k}</span>
+        <span class="settings-val">${v}</span>
+      </div>`).join('');
+
+  } catch(e) {}
+}
+
+async function setKillSwitch(activate) {
+  try {
+    const res  = await fetch(`${API}/api/risk/killswitch?activate=${activate}`, { method:'POST' });
+    const data = await res.json();
+    toast(data.kill_switch ? '⛔ Trading halted' : '✓ Trading resumed', data.kill_switch ? 'error' : 'success');
+    loadRiskStatus();
+  } catch(e) { toast('Failed to toggle kill switch', 'error'); }
+}
+
+loadRiskStatus();
+setInterval(loadRiskStatus, 8000);
+</script>
+</body>
+</html>
