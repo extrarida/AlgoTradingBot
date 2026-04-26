@@ -11,15 +11,18 @@
   body { display:flex; min-height:100vh; }
   .main { margin-left:210px; flex:1; padding:1.5rem 1.75rem; }
 
-  /* ── Signal display ── */
+  /* ── Signal display ─────────────────────────────────────────────────────── */
+  /* signal-main switches colour via BUY / SELL / NONE sub-classes            */
   .signal-main { font-size:2rem; font-weight:600; font-family:var(--mono); line-height:1; letter-spacing:-0.03em; }
   .signal-main.BUY  { color:var(--profit); }
   .signal-main.SELL { color:var(--loss); }
   .signal-main.NONE { color:var(--muted); }
 
+  /* Confidence bar — width driven dynamically by refreshSignal() (0% to 100%) */
   .conf-bar-bg { height:4px; background:var(--surface2); border-radius:2px; overflow:hidden; margin:0.45rem 0 0.2rem; }
   .conf-bar    { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); border-radius:2px; transition:width 0.5s ease; }
 
+  /* Vote count tiles — one block per vote type (Buy / Sell / Hold / Total) */
   .votes-row   { display:flex; gap:1rem; margin-top:0.875rem; }
   .vote-block  { text-align:center; min-width:48px; }
   .vote-num    { font-size:1.4rem; font-weight:600; font-family:var(--mono); line-height:1; }
@@ -28,10 +31,11 @@
   .vote-none   { color:var(--muted); }
   .vote-lbl    { font-size:0.62rem; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:0.05em; margin-top:0.18rem; }
 
+  /* Trade form row — symbol, lot, SL, TP inputs arranged horizontally */
   .trade-row   { display:flex; gap:0.75rem; align-items:flex-end; flex-wrap:wrap; margin-bottom:0.75rem; }
   .trade-result { margin-top:0.65rem; font-family:var(--mono); font-size:0.73rem; color:var(--muted); line-height:1.5; }
 
-  /* ── Top bar ── */
+  /* ── Top bar ─────────────────────────────────────────────────────────────── */
   .top-bar {
     display:         flex;
     align-items:     center;
@@ -40,11 +44,11 @@
     padding-bottom:  0.875rem;
     border-bottom:   1px solid var(--border);
   }
-
   .top-bar-left  { display:flex; align-items:center; gap:0.75rem; }
   .top-bar-right { display:flex; align-items:center; gap:0.75rem; }
 
-  /* ── Session banner ── */
+  /* ── Session banner ─────────────────────────────────────────────────────── */
+  /* Hidden by default; showSessionBanner() colours it green (live) or yellow (demo) */
   #sessionBanner {
     display:       none;
     padding:       0.45rem 0.875rem;
@@ -55,13 +59,14 @@
     line-height:   1;
   }
 
-  /* ── Watchlist ── */
+  /* ── Watchlist ──────────────────────────────────────────────────────────── */
   .watchlist-row { padding:0.45rem 0.4rem; }
 
-  /* ── Indicator bar ── */
+  /* ── Indicator chips ─────────────────────────────────────────────────────── */
+  /* Small data pills showing RSI estimate, signal, vote ratio, confidence    */
   .ind-row { display:flex; gap:0.45rem; flex-wrap:wrap; padding-top:0.65rem; border-top:1px solid var(--border); margin-top:0.65rem; }
 
-  /* ── Strategy breakdown list ── */
+  /* ── Strategy breakdown list ────────────────────────────────────────────── */
   .strat-item {
     display:         flex;
     align-items:     center;
@@ -74,15 +79,20 @@
   .strat-nm  { font-family:var(--mono); color:var(--text-dim); }
   .strat-pct { font-family:var(--mono); color:var(--accent); font-weight:500; }
 
-  /* ── Price change delta ── */
+  /* ── Price change flash colours ─────────────────────────────────────────── */
   .price-change-up   { color:var(--profit); font-family:var(--mono); font-size:0.72rem; }
   .price-change-down { color:var(--loss);   font-family:var(--mono); font-size:0.72rem; }
 </style>
 </head>
 <body>
+
+<!-- Toast notifications — appended dynamically by toast() and auto-removed after 4s -->
 <div class="toast-container" id="toastContainer"></div>
 
-<!-- ── Sidebar ── -->
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     SIDEBAR
+     Navigation links, live watchlist, App Guide button, connection badge.
+     ═══════════════════════════════════════════════════════════════════════ -->
 <nav class="sidebar">
   <div class="sidebar-logo">
     <div class="logo-icon">⚡</div>
@@ -93,22 +103,25 @@
   </div>
 
   <div class="nav-section-label">Navigation</div>
+  <!-- active class highlights the current page in the sidebar -->
   <a href="/dashboard"   class="nav-link active"><span class="nav-icon">📊</span> Dashboard</a>
   <a href="/history"     class="nav-link"><span class="nav-icon">📜</span> Trade History</a>
   <a href="/performance" class="nav-link"><span class="nav-icon">📈</span> Performance</a>
   <a href="/risk"        class="nav-link"><span class="nav-icon">🛡️</span> Risk Manager</a>
 
-  <!-- ── Watchlist ── -->
+  <!-- Watchlist — populated by loadWatchlist() every 15 seconds -->
   <div class="nav-section-label" style="margin-top:1rem;">Watchlist</div>
   <div id="watchlist" style="font-size:0.78rem;">
     <div class="empty" style="padding:0.5rem;">Loading...</div>
   </div>
 
   <div class="sidebar-bottom">
+    <!-- Connection badge — dot turns red when disconnected -->
     <div class="connection-badge">
       <div class="dot" id="connDot"></div>
       <span id="connLabel">Connecting...</span>
     </div>
+    <!-- App Guide button — relaunches the step-by-step onboarding tour -->
     <button class="guide-sidebar-btn" onclick="window.launchTour()">
       <span>📖</span> App Guide
     </button>
@@ -116,20 +129,24 @@
   </div>
 </nav>
 
-<!-- ── Main ── -->
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     MAIN CONTENT AREA
+     ═══════════════════════════════════════════════════════════════════════ -->
 <main class="main">
 
-  <!-- Session banner -->
+  <!-- Session banner — green for live MT5, yellow for demo -->
   <div id="sessionBanner"></div>
 
-  <!-- Top bar: title + market status + last updated -->
+  <!-- Top bar: title, market status badge, bot status badge, timestamp, refresh -->
   <div class="top-bar">
     <div class="top-bar-left">
       <div>
         <div class="page-title" style="margin-bottom:0;">Live Dashboard</div>
         <div class="page-sub" style="margin-bottom:0;">40-strategy engine · real-time signals</div>
       </div>
+      <!-- Market open/closed — calculated from UTC time in updateMarketStatus() -->
       <div id="marketStatus" class="market-status market-closed">⏸ Loading...</div>
+      <!-- Bot status — reads /api/bot/status + /api/risk/status every 5 seconds -->
       <div id="autoBotStatus" class="market-status market-closed">⏸ Bot Off</div>
     </div>
     <div class="top-bar-right">
@@ -138,7 +155,8 @@
     </div>
   </div>
 
-  <!-- Stats row -->
+  <!-- ── Stats row ─────────────────────────────────────────────────────────── -->
+  <!-- Four tiles updated by loadAccount() and loadPrice() -->
   <div class="stats-grid">
     <div class="stat-tile">
       <div class="stat-label" style="display:flex;align-items:center;gap:0.4rem;">
@@ -176,7 +194,8 @@
 
   <div class="grid-2">
 
-    <!-- ── Signal panel ── -->
+    <!-- ── Strategy signal panel ──────────────────────────────────────────── -->
+    <!-- Populated by refreshSignal() which calls /api/signal/{symbol}        -->
     <div class="card">
       <div class="card-header">
         <div class="card-title">Strategy Signal</div>
@@ -186,8 +205,10 @@
         </div>
       </div>
 
+      <!-- Main signal — class switches to BUY / SELL / NONE for colour -->
       <div id="signalMain" class="signal-main NONE">—</div>
 
+      <!-- Confidence bar — width set as percentage string by refreshSignal() -->
       <div style="margin-top:0.45rem;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div style="font-size:0.65rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;">Confidence</div>
@@ -196,7 +217,7 @@
         <div class="conf-bar-bg"><div class="conf-bar" id="confBar" style="width:0%"></div></div>
       </div>
 
-      <!-- Vote counts -->
+      <!-- Vote counts — Buy, Sell, Hold, Total -->
       <div class="votes-row">
         <div class="vote-block"><div class="vote-num vote-buy"  id="vBuy">—</div><div class="vote-lbl">Buy</div></div>
         <div class="vote-block"><div class="vote-num vote-sell" id="vSell">—</div><div class="vote-lbl">Sell</div></div>
@@ -204,7 +225,7 @@
         <div class="vote-block"><div class="vote-num" id="vTotal" style="color:var(--text-dim);">—</div><div class="vote-lbl">Total</div></div>
       </div>
 
-      <!-- Indicator chips -->
+      <!-- Indicator chips — RSI estimated from votes; others from API response -->
       <div class="ind-row" id="indicatorRow">
         <div class="ind-chip"><div class="ind-label">RSI</div><div class="ind-value" id="chipRsi">—</div></div>
         <div class="ind-chip"><div class="ind-label">Signal</div><div class="ind-value" id="chipSignal">—</div></div>
@@ -212,20 +233,21 @@
         <div class="ind-chip"><div class="ind-label">Conf</div><div class="ind-value" id="chipConf">—</div></div>
       </div>
 
-      <!-- Top strategies -->
+      <!-- Top strategies — ranked list from the API response -->
       <div style="margin-top:0.875rem;">
         <div class="card-title" style="margin-bottom:0.5rem;">Top Strategies</div>
         <div id="topStrategies" style="color:var(--muted);font-size:0.77rem;font-family:var(--mono);">—</div>
       </div>
     </div>
 
-    <!-- ── Trade controls ── -->
+    <!-- ── Trade controls ──────────────────────────────────────────────────── -->
     <div class="card">
       <div class="card-title" style="display:flex;align-items:center;gap:0.4rem;">
         Execute Trade
         <div class="card-help"><button class="card-help-btn">?</button><div class="card-help-popup"><strong>Execute Trade</strong>Place a trade manually. Set your symbol, lot size, stop loss and take profit, then click BUY or SELL.</div></div>
       </div>
 
+      <!-- Trade inputs — all read by placeTrade() on button click -->
       <div class="trade-row">
         <div class="form-field">
           <label>Symbol</label>
@@ -256,9 +278,10 @@
         <button class="btn btn-sell" style="flex:1;padding:0.65rem;font-size:0.88rem;font-weight:600;" onclick="placeTrade('SELL')">▼ SELL</button>
       </div>
 
+      <!-- Trade result — last manual trade or most recent auto-trade notification -->
       <div class="trade-result" id="tradeResult"></div>
 
-      <!-- Account detail -->
+      <!-- Account details — updated by loadAccount() -->
       <div style="margin-top:1rem;border-top:1px solid var(--border);padding-top:0.875rem;">
         <div class="card-title" style="margin-bottom:0.6rem;display:flex;align-items:center;gap:0.4rem;">
           Account
@@ -278,7 +301,8 @@
     </div>
   </div>
 
-  <!-- ── Price chart ── -->
+  <!-- ── Price chart ───────────────────────────────────────────────────────── -->
+  <!-- Rendered by Chart.js — loadChart() fetches OHLCV and redraws on demand  -->
   <div class="card">
     <div class="card-header">
       <div style="display:flex;align-items:center;gap:0.75rem;">
@@ -287,6 +311,7 @@
           <div class="card-help"><button class="card-help-btn">?</button><div class="card-help-popup"><strong>Price Chart</strong>Live candlestick chart. Use M5/M15/H1/H4 to switch timeframes. Click any watchlist symbol to change the chart.</div></div>
         </div>
       </div>
+      <!-- Timeframe buttons — each calls loadChart() with its timeframe string -->
       <div style="display:flex;gap:0.35rem;">
         <button class="btn btn-ghost" style="font-size:0.72rem;padding:0.28rem 0.55rem;" onclick="loadChart('M5')"  id="btn-M5">M5</button>
         <button class="btn btn-ghost" style="font-size:0.72rem;padding:0.28rem 0.55rem;" onclick="loadChart('M15')" id="btn-M15">M15</button>
@@ -297,7 +322,8 @@
     <canvas id="priceChart"></canvas>
   </div>
 
-  <!-- ── Open positions ── -->
+  <!-- ── Open positions table ─────────────────────────────────────────────── -->
+  <!-- Refreshed by loadPositions() every 3 seconds                            -->
   <div class="card">
     <div class="card-header">
       <div class="card-title" style="margin-bottom:0;display:flex;align-items:center;gap:0.4rem;">
@@ -312,222 +338,239 @@
   </div>
 
 </main>
+
+<!-- guide.js must load before the inline script so initGuide() is available -->
 <script src="/static/js/guide.js"></script>
 <script>
-  // ── Dashboard guide steps ─────────────────────────────────────────────────
-  const DASHBOARD_STEPS = [
-    {
-      selector: '.stats-grid',
-      title:    'Account Overview',
-      position: 'bottom',
-      body: `These four tiles give you a <strong>real-time snapshot</strong> of your trading account at a glance.
-             They update automatically every few seconds from your broker.`
-    },
-    {
-      selector: '.stats-grid .stat-tile:nth-child(1)',
-      title:    'Balance',
-      position: 'bottom',
-      body: `Your <strong>settled cash balance</strong> — the actual money in your account.
-             This number only changes when a trade is fully closed and the profit or loss is locked in.
-             While trades are open, this stays the same.`
-    },
-    {
-      selector: '.stats-grid .stat-tile:nth-child(2)',
-      title:    'Equity',
-      position: 'bottom',
-      body: `Your balance <strong>plus or minus</strong> the current value of all open trades.
-             If your open trades are profitable, equity is higher than balance.
-             If they're losing, equity is lower. This fluctuates constantly as prices move.`
-    },
-    {
-      selector: '.stats-grid .stat-tile:nth-child(3)',
-      title:    'Live Price',
-      position: 'bottom',
-      body: `The <strong>current market price</strong> (bid) for the selected symbol, streamed
-             live from your broker every 5 seconds. The spread below it is the broker's fee —
-             the difference between the buy price and sell price.`
-    },
-    {
-      selector: '.stats-grid .stat-tile:nth-child(4)',
-      title:    'Session P&L',
-      position: 'bottom',
-      body: `The <strong>total floating profit or loss</strong> across all your currently open positions.
-             Positive means your open trades are currently winning. This is unrealised — it only becomes
-             real money when the trades are closed.`
-    },
-    {
-      selector: '#signalMain',
-      title:    'Strategy Signal',
-      position: 'right',
-      body: `This is the <strong>heart of the trading bot</strong>. Every time you click Refresh,
-             all 40 trading strategies analyse the market simultaneously.
-             <br><br>
-             <strong>BUY</strong> = most strategies think the price will go up.<br>
-             <strong>SELL</strong> = most strategies think the price will go down.<br>
-             <strong>NONE</strong> = no clear agreement — the bot stays out.`
-    },
-    {
-      selector: '.conf-bar-bg',
-      title:    'Confidence',
-      position: 'right',
-      body: `How <strong>strongly</strong> the strategies agree. 100% means unanimous agreement.
-             The bot only places trades automatically when confidence is above 55%.
-             Low confidence means mixed signals — better to wait.`
-    },
-    {
-      selector: '.votes-row',
-      title:    'Strategy Votes',
-      position: 'right',
-      body: `Out of 40 strategies evaluated, this shows how many voted <strong>Buy</strong>,
-             how many voted <strong>Sell</strong>, and how many said <strong>Hold</strong>.
-             The winning side needs enough votes to trigger a trade.`
-    },
-    {
-      selector: '#topStrategies',
-      title:    'Top Strategies',
-      position: 'right',
-      body: `The specific strategies that drove the signal, ranked by their individual confidence.
-             For example <strong>RSIOversoldBounce</strong> means the RSI indicator detected an
-             oversold market — historically a buying opportunity.`
-    },
-    {
-      selector: '.trade-row',
-      title:    'Execute Trade',
-      position: 'left',
-      body: `Place a trade <strong>manually</strong> using the bot's analysis as guidance.
-             <br><br>
-             <strong>Symbol</strong> — which market to trade (EURUSD, Gold etc.)<br>
-             <strong>Lot Size</strong> — how much to trade (0.01 = micro lot, smallest safe size)<br>
-             <strong>SL (pips)</strong> — stop loss: auto-closes if trade loses this many pips<br>
-             <strong>TP (pips)</strong> — take profit: auto-closes when trade wins this many pips`
-    },
-    {
-      selector: '.btn-buy',
-      title:    'BUY Button',
-      position: 'left',
-      body: `Opens a <strong>Buy position</strong> — you're betting the price will go up.
-             The bot sends this order directly to your broker via MetaTrader 5.
-             The trade will appear in your MT5 terminal immediately.`
-    },
-    {
-      selector: '#priceChart',
-      title:    'Price Chart',
-      position: 'top',
-      body: `Live <strong>candlestick chart</strong> showing recent price movement for the selected symbol.
-             <br><br>
-             Use the <strong>M5, M15, H1, H4</strong> buttons to switch between timeframes —
-             M5 shows 5-minute candles (short-term), H4 shows 4-hour candles (longer-term trends).`
-    },
-    {
-      selector: '#watchlist',
-      title:    'Watchlist',
-      position: 'right',
-      body: `Live prices for all <strong>5 monitored symbols</strong>. The percentage shows
-             how much the price has moved recently.
-             <br><br>
-             <strong>Click any symbol</strong> to switch the entire dashboard — chart, signal,
-             and price — to that market instantly.`
-    },
-    {
-      selector: '#positionsTable',
-      title:    'Open Positions',
-      position: 'top',
-      body: `All your <strong>currently active trades</strong>. Each row shows the ticket number,
-             which market, whether it's a buy or sell, the price you entered at, your stop loss
-             and take profit levels, and the <strong>current floating profit or loss</strong>
-             in real time.`
-    },
-    {
-      selector: '#freeMargin',
-      title:    'Account Details',
-      position: 'top',
-      body: `<strong>Free Margin</strong> — money available to open new trades.<br>
-             <strong>Margin Used</strong> — money locked as collateral for open positions.<br>
-             <strong>Server</strong> — which broker server you're connected to.<br>
-             <strong>Login</strong> — your broker account number.`
-    },
-  ];
-   
-  // ── Card hover tooltips ───────────────────────────────────────────────────
-  const DASHBOARD_CARD_TOOLTIPS = [
-    {
-      selector: '.stats-grid .stat-tile:nth-child(1)',
-      title:    'Balance',
-      body:     'Your settled cash. Only changes when trades close.'
-    },
-    {
-      selector: '.stats-grid .stat-tile:nth-child(2)',
-      title:    'Equity',
-      body:     'Balance ± open trade P&L. Changes every price tick.'
-    },
-    {
-      selector: '.stats-grid .stat-tile:nth-child(3)',
-      title:    'Live Price',
-      body:     'Current bid price from your broker. Updates every 5 seconds.'
-    },
-    {
-      selector: '.stats-grid .stat-tile:nth-child(4)',
-      title:    'Session P&L',
-      body:     'Total floating profit/loss on all open positions right now.'
-    },
-    {
-      selector: '.card:has(#signalMain)',
-      title:    'Strategy Signal',
-      body:     '40 strategies vote BUY/SELL/HOLD. The majority wins. Confidence shows how strongly they agree.'
-    },
-    {
-      selector: '.card:has(.btn-buy)',
-      title:    'Execute Trade',
-      body:     'Place a manual trade. Set your lot size, stop loss, and take profit before clicking BUY or SELL.'
-    },
-    {
-      selector: '.card:has(#priceChart)',
-      title:    'Price Chart',
-      body:     'Live candlestick chart. Switch timeframes with M5/M15/H1/H4 buttons.'
-    },
-    {
-      selector: '.card:has(#positionsTable)',
-      title:    'Open Positions',
-      body:     'All active trades with live P&L. Updated every 10 seconds.'
-    },
-  ];
-   
-  // ── Init ──────────────────────────────────────────────────────────────────
-  document.addEventListener('DOMContentLoaded', () => {
-    initGuide(DASHBOARD_STEPS, 'dashboard');
-  });
+// =============================================================================
+// DASHBOARD JAVASCRIPT
+// =============================================================================
+// Handles all live data fetching and DOM updates for the main trading dashboard.
+// Each section of the dashboard polls the FastAPI backend independently so a
+// slow response on one endpoint does not delay updates to the others.
+//
+// Polling schedule (set at the bottom of this script):
+//   loadPrice()          every  5 seconds  — live price tile + colour flash
+//   loadPositions()      every  3 seconds  — open positions + auto-trade detection
+//   loadWatchlist()      every 15 seconds  — all 5 watchlist symbols
+//   updateMarketStatus() every 60 seconds  — open/closed badge (changes slowly)
+//   checkStatus()        every  8 seconds  — connection badge in sidebar
+//   updateBotStatus()    every  5 seconds  — Bot Active / Halted / Off badge
+// =============================================================================
 
 
-const API = 'http://localhost:8000';
-let priceChart = null;
-let currentTf  = 'M15';
-let prevPrice  = null;
+// ── Onboarding guide configuration ───────────────────────────────────────────
+// DASHBOARD_STEPS defines the step-by-step tour content.
+// guide.js reads this array to render the spotlight tour when launchTour()
+// is called from the welcome modal or the App Guide sidebar button.
 
-let _knownTickets = new Set();
+const DASHBOARD_STEPS = [
+  {
+    selector: '.stats-grid',
+    title:    'Account Overview',
+    position: 'bottom',
+    body: `These four tiles give you a <strong>real-time snapshot</strong> of your trading account at a glance.
+           They update automatically every few seconds from your broker.`
+  },
+  {
+    selector: '.stats-grid .stat-tile:nth-child(1)',
+    title:    'Balance',
+    position: 'bottom',
+    body: `Your <strong>settled cash balance</strong> — the actual money in your account.
+           This number only changes when a trade is fully closed and the profit or loss is locked in.
+           While trades are open, this stays the same.`
+  },
+  {
+    selector: '.stats-grid .stat-tile:nth-child(2)',
+    title:    'Equity',
+    position: 'bottom',
+    body: `Your balance <strong>plus or minus</strong> the current value of all open trades.
+           If your open trades are profitable, equity is higher than balance.
+           If they're losing, equity is lower. This fluctuates constantly as prices move.`
+  },
+  {
+    selector: '.stats-grid .stat-tile:nth-child(3)',
+    title:    'Live Price',
+    position: 'bottom',
+    body: `The <strong>current market price</strong> (bid) for the selected symbol, streamed
+           live from your broker every 5 seconds. The spread below it is the broker's fee —
+           the difference between the buy price and sell price.`
+  },
+  {
+    selector: '.stats-grid .stat-tile:nth-child(4)',
+    title:    'Session P&L',
+    position: 'bottom',
+    body: `The <strong>total floating profit or loss</strong> across all your currently open positions.
+           Positive means your open trades are currently winning. This is unrealised — it only becomes
+           real money when the trades are closed.`
+  },
+  {
+    selector: '#signalMain',
+    title:    'Strategy Signal',
+    position: 'right',
+    body: `This is the <strong>heart of the trading bot</strong>. Every time you click Refresh,
+           all 40 trading strategies analyse the market simultaneously.
+           <br><br>
+           <strong>BUY</strong> = most strategies think the price will go up.<br>
+           <strong>SELL</strong> = most strategies think the price will go down.<br>
+           <strong>NONE</strong> = no clear agreement — the bot stays out.`
+  },
+  {
+    selector: '.conf-bar-bg',
+    title:    'Confidence',
+    position: 'right',
+    body: `How <strong>strongly</strong> the strategies agree. 100% means unanimous agreement.
+           The bot only places trades automatically when confidence is above 55%.
+           Low confidence means mixed signals — better to wait.`
+  },
+  {
+    selector: '.votes-row',
+    title:    'Strategy Votes',
+    position: 'right',
+    body: `Out of 40 strategies evaluated, this shows how many voted <strong>Buy</strong>,
+           how many voted <strong>Sell</strong>, and how many said <strong>Hold</strong>.
+           The winning side needs enough votes to trigger a trade.`
+  },
+  {
+    selector: '#topStrategies',
+    title:    'Top Strategies',
+    position: 'right',
+    body: `The specific strategies that drove the signal, ranked by their individual confidence.
+           For example <strong>RSIOversoldBounce</strong> means the RSI indicator detected an
+           oversold market — historically a buying opportunity.`
+  },
+  {
+    selector: '.trade-row',
+    title:    'Execute Trade',
+    position: 'left',
+    body: `Place a trade <strong>manually</strong> using the bot's analysis as guidance.
+           <br><br>
+           <strong>Symbol</strong> — which market to trade (EURUSD, Gold etc.)<br>
+           <strong>Lot Size</strong> — how much to trade (0.01 = micro lot, smallest safe size)<br>
+           <strong>SL (pips)</strong> — stop loss: auto-closes if trade loses this many pips<br>
+           <strong>TP (pips)</strong> — take profit: auto-closes when trade wins this many pips`
+  },
+  {
+    selector: '.btn-buy',
+    title:    'BUY Button',
+    position: 'left',
+    body: `Opens a <strong>Buy position</strong> — you're betting the price will go up.
+           The bot sends this order directly to your broker via MetaTrader 5.
+           The trade will appear in your MT5 terminal immediately.`
+  },
+  {
+    selector: '#priceChart',
+    title:    'Price Chart',
+    position: 'top',
+    body: `Live <strong>candlestick chart</strong> showing recent price movement for the selected symbol.
+           <br><br>
+           Use the <strong>M5, M15, H1, H4</strong> buttons to switch between timeframes —
+           M5 shows 5-minute candles (short-term), H4 shows 4-hour candles (longer-term trends).`
+  },
+  {
+    selector: '#watchlist',
+    title:    'Watchlist',
+    position: 'right',
+    body: `Live prices for all <strong>5 monitored symbols</strong>. The percentage shows
+           how much the price has moved recently.
+           <br><br>
+           <strong>Click any symbol</strong> to switch the entire dashboard — chart, signal,
+           and price — to that market instantly.`
+  },
+  {
+    selector: '#positionsTable',
+    title:    'Open Positions',
+    position: 'top',
+    body: `All your <strong>currently active trades</strong>. Each row shows the ticket number,
+           which market, whether it's a buy or sell, the price you entered at, your stop loss
+           and take profit levels, and the <strong>current floating profit or loss</strong>
+           in real time.`
+  },
+  {
+    selector: '#freeMargin',
+    title:    'Account Details',
+    position: 'top',
+    body: `<strong>Free Margin</strong> — money available to open new trades.<br>
+           <strong>Margin Used</strong> — money locked as collateral for open positions.<br>
+           <strong>Server</strong> — which broker server you're connected to.<br>
+           <strong>Login</strong> — your broker account number.`
+  },
+];
+
+// Card hover tooltip definitions — used by initCardTooltips() in guide.js
+const DASHBOARD_CARD_TOOLTIPS = [
+  { selector: '.stats-grid .stat-tile:nth-child(1)', title: 'Balance',        body: 'Your settled cash. Only changes when trades close.' },
+  { selector: '.stats-grid .stat-tile:nth-child(2)', title: 'Equity',         body: 'Balance ± open trade P&L. Changes every price tick.' },
+  { selector: '.stats-grid .stat-tile:nth-child(3)', title: 'Live Price',     body: 'Current bid price from your broker. Updates every 5 seconds.' },
+  { selector: '.stats-grid .stat-tile:nth-child(4)', title: 'Session P&L',    body: 'Total floating profit/loss on all open positions right now.' },
+  { selector: '.card:has(#signalMain)',              title: 'Strategy Signal', body: '40 strategies vote BUY/SELL/HOLD. The majority wins. Confidence shows how strongly they agree.' },
+  { selector: '.card:has(.btn-buy)',                 title: 'Execute Trade',   body: 'Place a manual trade. Set your lot size, stop loss, and take profit before clicking BUY or SELL.' },
+  { selector: '.card:has(#priceChart)',              title: 'Price Chart',     body: 'Live candlestick chart. Switch timeframes with M5/M15/H1/H4 buttons.' },
+  { selector: '.card:has(#positionsTable)',          title: 'Open Positions',  body: 'All active trades with live P&L. Updated every 10 seconds.' },
+];
+
+// Initialise the guide once the HTML is fully parsed
+document.addEventListener('DOMContentLoaded', () => {
+  initGuide(DASHBOARD_STEPS, 'dashboard');
+});
+
+
+// ── Constants and module-level state ──────────────────────────────────────────
+
+const API      = 'http://localhost:8000'; // FastAPI server base URL
+let priceChart = null;                    // Chart.js instance — recreated on each loadChart() call
+let currentTf  = 'M15';                  // active timeframe for the price chart
+let prevPrice  = null;                    // last known bid price for colour flash comparison
+
+// Auto-trade notification state.
+// On first loadPositions() call, all existing positions are recorded silently.
+// Any ticket appearing in later calls that is not already in this Set is new —
+// it was placed by the automated bot and triggers a toast notification.
+let _knownTickets    = new Set();
 let _initialLoadDone = false;
 
-function checkNewPositions(positions) {
-    // Called from inside loadPositions() with the latest positions data
-    if (!_initialLoadDone) {
-        positions.forEach(pos => _knownTickets.add(pos.ticket));
-        _initialLoadDone = true;
-        return;
-    }
 
-    for (const pos of positions) {
-        if (!_knownTickets.has(pos.ticket)) {
-            _knownTickets.add(pos.ticket);
-            const type  = pos.type === 0 ? 'BUY' : 'SELL';
-            const color = pos.type === 0 ? 'var(--profit)' : 'var(--loss)';
-            toast(`🤖 AUTO ${type} — #${pos.ticket} · ${pos.symbol} @ ${Number(pos.price_open).toFixed(5)}`);
-            document.getElementById('tradeResult').innerHTML =
-                `<span style="color:${color}">🤖 AUTO ${type}</span> · #${pos.ticket} · ${pos.symbol} · @ ${Number(pos.price_open).toFixed(5)}`;
-        }
+// ── Auto-trade notifications ──────────────────────────────────────────────────
+
+/**
+ * checkNewPositions — detects bot-placed trades and shows toast notifications.
+ * Called from inside loadPositions() with the latest positions array.
+ *
+ * First call: silently seeds _knownTickets with all currently open positions
+ *             so the dashboard does not flood the user on page load.
+ * Later calls: any ticket not in _knownTickets is new — toast + tradeResult update.
+ */
+function checkNewPositions(positions) {
+  if (!_initialLoadDone) {
+    // Seed the set silently — no notifications for pre-existing positions
+    positions.forEach(pos => _knownTickets.add(pos.ticket));
+    _initialLoadDone = true;
+    return;
+  }
+
+  for (const pos of positions) {
+    if (!_knownTickets.has(pos.ticket)) {
+      // New position detected — placed by the automated bot
+      _knownTickets.add(pos.ticket);
+      const type  = pos.type === 0 ? 'BUY' : 'SELL';
+      const color = pos.type === 0 ? 'var(--profit)' : 'var(--loss)';
+      toast(`🤖 AUTO ${type} — #${pos.ticket} · ${pos.symbol} @ ${Number(pos.price_open).toFixed(5)}`);
+      document.getElementById('tradeResult').innerHTML =
+        `<span style="color:${color}">🤖 AUTO ${type}</span> · #${pos.ticket} · ${pos.symbol} · @ ${Number(pos.price_open).toFixed(5)}`;
     }
+  }
 }
 
-// ── Helpers ──────────────────────────────────────────────────
-function toast(msg, type='success') {
+
+// ── Utility functions ─────────────────────────────────────────────────────────
+
+/**
+ * toast — append a temporary notification to the toast container.
+ * Automatically removed after 4 seconds.
+ * @param {string} msg  - message text to display
+ * @param {string} type - 'success' (green) or 'error' (red)
+ */
+function toast(msg, type = 'success') {
   const el = document.createElement('div');
   el.className   = `toast toast-${type}`;
   el.textContent = msg;
@@ -535,34 +578,54 @@ function toast(msg, type='success') {
   setTimeout(() => el.remove(), 4000);
 }
 
+/** now — current local time as HH:MM:SS string. */
 function now() {
-  return new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  return new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
-function fmtPrice(n, d=5) { return Number(n).toFixed(d); }
+/**
+ * fmtPrice — format a number to a fixed decimal places.
+ * Default d=5 is standard for forex prices (e.g. 1.10234).
+ */
+function fmtPrice(n, d = 5) { return Number(n).toFixed(d); }
 
-// ── Disconnect ────────────────────────────────────────────────
+
+// ── Disconnect ────────────────────────────────────────────────────────────────
+
+/** disconnectMT5 — POST to /api/disconnect, clear local storage, redirect to login. */
 async function disconnectMT5() {
-  await fetch(`${API}/api/disconnect`, { method:'POST' });
+  await fetch(`${API}/api/disconnect`, { method: 'POST' });
   localStorage.clear();
   window.location.href = '/';
 }
 
-// ── Market status ─────────────────────────────────────────────
-function updateMarketStatus() {
-  const el  = document.getElementById('marketStatus');
-  const day = new Date().getUTCDay();
-  const h   = new Date().getUTCHours();
-  const m   = new Date().getUTCMinutes();
-  const mins = h * 60 + m;
 
-  // Forex is closed Fri 22:00 UTC to Sun 22:00 UTC (approx)
-  const isClosed = (day === 6) || (day === 0 && mins < 22*60) || (day === 5 && mins >= 22*60);
+// ── Market status ─────────────────────────────────────────────────────────────
+
+/**
+ * updateMarketStatus — calculates whether the forex market is currently open
+ * based on UTC time and updates the badge.
+ *
+ * Forex hours (UTC):
+ *   Open:     Sunday 22:00
+ *   Close:    Friday 22:00
+ *   Off-Hours: outside 08:00–22:00 on weekdays (low liquidity)
+ */
+function updateMarketStatus() {
+  const el   = document.getElementById('marketStatus');
+  const day  = new Date().getUTCDay();     // 0=Sun … 6=Sat
+  const h    = new Date().getUTCHours();
+  const m    = new Date().getUTCMinutes();
+  const mins = h * 60 + m;                // minutes since midnight UTC
+
+  // Closed: Saturday all day, Sunday before 22:00, Friday after 22:00
+  const isClosed = (day === 6) || (day === 0 && mins < 22 * 60) || (day === 5 && mins >= 22 * 60);
 
   if (isClosed) {
     el.className   = 'market-status market-closed';
     el.textContent = '⏸ Market Closed';
-  } else if (mins >= 22*60 || mins < 8*60) {
+  } else if (mins >= 22 * 60 || mins < 8 * 60) {
+    // Open but very low activity outside main session hours
     el.className   = 'market-status market-pre';
     el.textContent = '◐ Off-Hours';
   } else {
@@ -571,7 +634,13 @@ function updateMarketStatus() {
   }
 }
 
-// ── Connection status ─────────────────────────────────────────
+
+// ── Connection status ─────────────────────────────────────────────────────────
+
+/**
+ * checkStatus — polls /api/status and updates the sidebar connection badge.
+ * Shows 'Live MT5' or 'Mock Mode' when connected; red dot when disconnected.
+ */
 async function checkStatus() {
   try {
     const res  = await fetch(`${API}/api/status`);
@@ -588,7 +657,16 @@ async function checkStatus() {
   } catch {}
 }
 
-// ── Session banner ────────────────────────────────────────────
+
+// ── Session banner ────────────────────────────────────────────────────────────
+
+/**
+ * showSessionBanner — reads session_type from localStorage (written at login)
+ * and displays the appropriate coloured banner below the top bar.
+ *
+ * localStorage is used because the session type is known at login and doesn't
+ * change during a session, so no API call is needed here.
+ */
 function showSessionBanner() {
   const sessionType = localStorage.getItem('session_type') || 'mock';
   const banner      = document.getElementById('sessionBanner');
@@ -601,7 +679,15 @@ function showSessionBanner() {
   }
 }
 
-// ── Account ───────────────────────────────────────────────────
+
+// ── Account data ──────────────────────────────────────────────────────────────
+
+/**
+ * loadAccount — fetches account info and updates all account-related elements.
+ *
+ * Note: real MT5 returns 'margin_free'; mock returns 'free_margin'.
+ * The nullish coalescing (??) tries both key names to handle both cases.
+ */
 async function loadAccount() {
   try {
     const res  = await fetch(`${API}/api/account`);
@@ -617,7 +703,18 @@ async function loadAccount() {
   } catch(e) {}
 }
 
-// ── Live price ────────────────────────────────────────────────
+
+// ── Live price ────────────────────────────────────────────────────────────────
+
+/**
+ * loadPrice — fetches the bid price for the selected symbol and updates
+ * the Live Price tile with a green/red colour flash on change.
+ *
+ * The flash works by comparing the new bid to prevPrice:
+ *   bid > prevPrice → green flash (price rose)
+ *   bid < prevPrice → red flash   (price fell)
+ * The colour is then reset to default after 800ms.
+ */
 async function loadPrice() {
   const symbol = document.getElementById('symbol').value;
   try {
@@ -625,7 +722,6 @@ async function loadPrice() {
     const data = await res.json();
     const bid  = Number(data.bid);
 
-    // Colour flash if price changed
     const el = document.getElementById('livePrice');
     el.textContent = fmtPrice(bid);
 
@@ -635,15 +731,24 @@ async function loadPrice() {
     }
     prevPrice = bid;
 
-    const spread = Number(data.spread || 0);
-    document.getElementById('spread').textContent = 'Spread ' + fmtPrice(spread);
+    document.getElementById('spread').textContent     = 'Spread ' + fmtPrice(Number(data.spread || 0));
     document.getElementById('lastUpdated').textContent = 'Updated ' + now();
   } catch(e) {}
 }
 
-// ── Watchlist ─────────────────────────────────────────────────
-const WATCH_SYMBOLS = ['EURUSD','GBPUSD','XAUUSD','USDJPY','US30'];
 
+// ── Watchlist ─────────────────────────────────────────────────────────────────
+
+const WATCH_SYMBOLS = ['EURUSD', 'GBPUSD', 'XAUUSD', 'USDJPY', 'US30'];
+
+/**
+ * loadWatchlist — fetches the latest price for all 5 symbols and renders
+ * clickable rows in the sidebar. Clicking a row calls setSymbol().
+ *
+ * The % change is a small random walk — the mock connector does not provide
+ * real daily change data, and real MT5 does not expose it through the same
+ * tick API. The values are directionally plausible but not accurate.
+ */
 async function loadWatchlist() {
   const container = document.getElementById('watchlist');
   const rows = [];
@@ -652,15 +757,12 @@ async function loadWatchlist() {
       const res  = await fetch(`${API}/api/price/${sym}`);
       const data = await res.json();
       const bid  = Number(data.bid);
-      // Simulate a % change (mock doesn't provide this natively)
-      const chg  = ((Math.random() - 0.48) * 0.4).toFixed(2);
+      const chg  = ((Math.random() - 0.48) * 0.4).toFixed(2); // simulated % change
       const cls  = Number(chg) > 0 ? 'chg-up' : Number(chg) < 0 ? 'chg-dn' : 'chg-flat';
       const sign = Number(chg) > 0 ? '+' : '';
       rows.push(`
         <div class="watchlist-row" onclick="setSymbol('${sym}')">
-          <div>
-            <div class="watchlist-sym">${sym}</div>
-          </div>
+          <div><div class="watchlist-sym">${sym}</div></div>
           <div style="text-align:right;">
             <div class="watchlist-price">${fmtPrice(bid)}</div>
             <div class="watchlist-chg ${cls}">${sign}${chg}%</div>
@@ -671,25 +773,40 @@ async function loadWatchlist() {
   container.innerHTML = rows.join('');
 }
 
+/** setSymbol — switch active symbol and refresh all symbol-dependent sections. */
 function setSymbol(sym) {
   document.getElementById('symbol').value = sym;
   onSymbolChange();
 }
 
-// ── Signal ────────────────────────────────────────────────────
+
+// ── Strategy signal ───────────────────────────────────────────────────────────
+
+/**
+ * refreshSignal — calls /api/signal/{symbol} to run all 40 strategies and
+ * updates every element in the signal panel.
+ *
+ * RSI is estimated from the vote ratio because the API returns aggregated
+ * votes rather than the raw RSI value. The estimate is directionally correct
+ * but not the exact value from the RSI indicator calculation.
+ */
 async function refreshSignal() {
   const symbol = document.getElementById('symbol').value;
-  document.getElementById('signalMain').textContent = '...';
+  document.getElementById('signalMain').textContent = '...'; // loading state
   try {
     const res  = await fetch(`${API}/api/signal/${symbol}`);
     const data = await res.json();
 
+    // Main signal — className switch drives the BUY/SELL/NONE colour
     const el = document.getElementById('signalMain');
     el.textContent = data.final_signal;
     el.className   = `signal-main ${data.final_signal}`;
 
+    // Confidence bar and label
     document.getElementById('confBar').style.width = data.confidence + '%';
     document.getElementById('confPct').textContent = data.confidence + '%';
+
+    // Vote counts
     document.getElementById('vBuy').textContent    = data.buy_votes;
     document.getElementById('vSell').textContent   = data.sell_votes;
     document.getElementById('vNone').textContent   = data.none_votes;
@@ -702,15 +819,15 @@ async function refreshSignal() {
     document.getElementById('chipVotes').textContent  = data.buy_votes + 'B/' + data.sell_votes + 'S';
     document.getElementById('chipConf').textContent   = data.confidence + '%';
 
-    // Estimate RSI from vote ratio
+    // RSI estimate derived from vote ratio — not the actual RSI value
     const rsiEst = data.buy_votes > data.sell_votes
-      ? (50 + (data.buy_votes / data.total_evaluated) * 35).toFixed(0)
+      ? (50 + (data.buy_votes  / data.total_evaluated) * 35).toFixed(0)
       : (50 - (data.sell_votes / data.total_evaluated) * 35).toFixed(0);
     const rsiEl = document.getElementById('chipRsi');
     rsiEl.textContent = rsiEst;
     rsiEl.className   = 'ind-value ' + (rsiEst > 60 ? 'bullish' : rsiEst < 40 ? 'bearish' : '');
 
-    // Top strategies
+    // Top strategies list
     const topEl = document.getElementById('topStrategies');
     if (data.top_strategies && data.top_strategies.length > 0) {
       topEl.innerHTML = data.top_strategies.map(s =>
@@ -727,12 +844,26 @@ async function refreshSignal() {
   }
 }
 
-// ── Chart ─────────────────────────────────────────────────────
+
+// ── Price chart ───────────────────────────────────────────────────────────────
+
+/**
+ * loadChart — fetches OHLCV candles and renders a hybrid bar+line chart.
+ *
+ * Two Chart.js datasets are layered:
+ *   1. Line — the close price trend (teal)
+ *   2. Bar  — the candle body height (|close - open|), green or red
+ *
+ * Y-axis is anchored to the actual price range rather than starting from zero,
+ * so small price movements remain visible rather than appearing as a flat line.
+ *
+ * @param {string} tf - 'M5', 'M15', 'H1', or 'H4'
+ */
 async function loadChart(tf = 'M15') {
   currentTf = tf;
 
-  // Highlight active button
-  ['M5','M15','H1','H4'].forEach(t => {
+  // Highlight the active timeframe button
+  ['M5', 'M15', 'H1', 'H4'].forEach(t => {
     const b = document.getElementById('btn-' + t);
     if (b) b.style.color = t === tf ? 'var(--accent)' : '';
   });
@@ -741,16 +872,18 @@ async function loadChart(tf = 'M15') {
   document.getElementById('chartSymbol').textContent = symbol;
 
   try {
-    const res  = await fetch(`${API}/api/ohlcv/${symbol}?timeframe=${tf}&count=80`);
-    const data = await res.json();
-
-    const labels = data.data.map(d => d.time.slice(11,16));
+    const res    = await fetch(`${API}/api/ohlcv/${symbol}?timeframe=${tf}&count=80`);
+    const data   = await res.json();
+    const labels = data.data.map(d => d.time.slice(11, 16)); // HH:MM only for compact labels
     const closes = data.data.map(d => d.close);
     const opens  = data.data.map(d => d.open);
 
-    // Colour each bar green or red
-    const barColors = closes.map((c,i) => c >= opens[i] ? 'rgba(0,201,122,0.55)' : 'rgba(255,77,106,0.55)');
+    // Green for bullish candle (close >= open), red for bearish
+    const barColors = closes.map((c, i) =>
+      c >= opens[i] ? 'rgba(0,201,122,0.55)' : 'rgba(255,77,106,0.55)'
+    );
 
+    // Destroy previous instance before creating a new one (prevents canvas reuse error)
     if (priceChart) priceChart.destroy();
     const ctx = document.getElementById('priceChart').getContext('2d');
 
@@ -760,18 +893,18 @@ async function loadChart(tf = 'M15') {
         labels,
         datasets: [
           {
-            type:            'line',
-            data:            closes,
-            borderColor:     'rgba(0,212,170,0.7)',
-            borderWidth:     1.5,
-            pointRadius:     0,
-            tension:         0.2,
-            fill:            false,
-            order:           1,
+            type:        'line',      // close price trend line
+            data:        closes,
+            borderColor: 'rgba(0,212,170,0.7)',
+            borderWidth: 1.5,
+            pointRadius: 0,
+            tension:     0.2,
+            fill:        false,
+            order:       1,           // renders above the bars
           },
           {
-            type:            'bar',
-            data:            closes.map((c,i) => Math.abs(c - opens[i]) || 0.00001),
+            type:            'bar',   // candle body height
+            data:            closes.map((c, i) => Math.abs(c - opens[i]) || 0.00001),
             backgroundColor: barColors,
             order:           2,
           }
@@ -782,15 +915,15 @@ async function loadChart(tf = 'M15') {
         plugins: { legend: { display: false } },
         scales: {
           x: {
-            ticks: { color:'#4a6080', font:{ family:'IBM Plex Mono', size:10 }, maxTicksLimit:8 },
-            grid:  { color:'rgba(36,52,71,0.6)' }
+            ticks: { color: '#4a6080', font: { family: 'IBM Plex Mono', size: 10 }, maxTicksLimit: 8 },
+            grid:  { color: 'rgba(36,52,71,0.6)' }
           },
           y: {
-            // Set min/max from actual data so chart doesn't start from 0
-            min: Math.min(...closes) * 0.9995,
-            max: Math.max(...closes) * 1.0005,
-            ticks: { color:'#4a6080', font:{ family:'IBM Plex Mono', size:10 } },
-            grid:  { color:'rgba(36,52,71,0.6)' }
+            // Anchor Y-axis to data range so movements are visible
+            min:   Math.min(...closes) * 0.9995,
+            max:   Math.max(...closes) * 1.0005,
+            ticks: { color: '#4a6080', font: { family: 'IBM Plex Mono', size: 10 } },
+            grid:  { color: 'rgba(36,52,71,0.6)' }
           }
         }
       }
@@ -798,12 +931,27 @@ async function loadChart(tf = 'M15') {
   } catch(e) {}
 }
 
-// ── Trade ─────────────────────────────────────────────────────
+
+// ── Trade placement ───────────────────────────────────────────────────────────
+
+/**
+ * placeTrade — reads form inputs and sends a trade request to /api/trade.
+ *
+ * Three outcomes:
+ *   Success:   green toast + order details in tradeResult + immediate positions refresh
+ *   Rejection: risk manager returns success:false with a reason — shown in red
+ *   Error:     network failure — shown with the exception message
+ *
+ * Note: the API returns HTTP 200 even for risk-manager rejections so the
+ * browser can read the reason message. A 4xx would be caught by res.ok check.
+ *
+ * @param {string} direction - 'BUY' or 'SELL'
+ */
 async function placeTrade(direction) {
-  const symbol  = document.getElementById('symbol').value;
-  const lot     = parseFloat(document.getElementById('lot').value);
-  const slPips  = parseInt(document.getElementById('slPips').value);
-  const tpPips  = parseInt(document.getElementById('tpPips').value);
+  const symbol = document.getElementById('symbol').value;
+  const lot    = parseFloat(document.getElementById('lot').value);
+  const slPips = parseInt(document.getElementById('slPips').value);
+  const tpPips = parseInt(document.getElementById('tpPips').value);
 
   if (!symbol || isNaN(lot) || isNaN(slPips) || isNaN(tpPips)) {
     toast('Please fill in all trade fields', 'error');
@@ -813,13 +961,14 @@ async function placeTrade(direction) {
   const body = { symbol, signal: direction, lot, sl_pips: slPips, tp_pips: tpPips };
 
   try {
-    const res  = await fetch(`${API}/api/trade`, {
+    const res = await fetch(`${API}/api/trade`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(body)
+      body:    JSON.stringify(body),
     });
 
     if (!res.ok) {
+      // Server-side error (5xx) — show FastAPI's detail message
       const err = await res.json().catch(() => ({}));
       toast(err.detail || `Server error ${res.status}`, 'error');
       return;
@@ -828,14 +977,14 @@ async function placeTrade(direction) {
     const data = await res.json();
 
     if (data && data.success) {
-      const price   = data.price   != null ? Number(data.price).toFixed(5)  : '—';
+      const price   = data.price    != null ? Number(data.price).toFixed(5)  : '—';
       const orderId = data.order_id != null ? data.order_id : '—';
-      const sl      = data.sl      != null ? Number(data.sl).toFixed(5)     : '—';
-      const tp      = data.tp      != null ? Number(data.tp).toFixed(5)     : '—';
+      const sl      = data.sl       != null ? Number(data.sl).toFixed(5)     : '—';
+      const tp      = data.tp       != null ? Number(data.tp).toFixed(5)     : '—';
       toast(`${direction} placed · #${orderId} · ${price}`);
       document.getElementById('tradeResult').innerHTML =
         `<span style="color:var(--profit)">✓ ${direction}</span> · #${orderId} · @ ${price} · SL ${sl} · TP ${tp}`;
-      loadPositions();
+      loadPositions(); // refresh immediately so new position appears without waiting for the interval
     } else {
       const msg = (data && data.message) ? data.message : 'Trade rejected by broker';
       toast(msg, 'error');
@@ -849,21 +998,32 @@ async function placeTrade(direction) {
   }
 }
 
-// ── Positions ─────────────────────────────────────────────────
+
+// ── Open positions ────────────────────────────────────────────────────────────
+
+/**
+ * loadPositions — fetches open positions and renders the positions table.
+ * Also recalculates Session P&L and calls checkNewPositions() to detect
+ * any trades placed by the automated bot since the last poll.
+ *
+ * MT5 position type convention: 0 = BUY, 1 = SELL.
+ */
 async function loadPositions() {
   try {
-    const res  = await fetch(`${API}/api/positions`);
-    const data = await res.json();
+    const res       = await fetch(`${API}/api/positions`);
+    const data      = await res.json();
     const positions = data.positions || [];
 
+    // Always check for new auto-trades before rendering
     checkNewPositions(positions);
 
-    // Update session P&L
-    const totalPnl = positions.reduce((s,p) => s + (p.profit||0), 0);
+    // Session P&L — sum of floating profit on all open positions
+    const totalPnl = positions.reduce((s, p) => s + (p.profit || 0), 0);
     const pnlEl    = document.getElementById('sessionPnl');
     pnlEl.textContent = (totalPnl >= 0 ? '+$' : '-$') + Math.abs(totalPnl).toFixed(2);
     pnlEl.className   = 'stat-value ' + (totalPnl >= 0 ? 'positive' : 'negative');
-    document.getElementById('posCount').textContent  = positions.length + ' open position' + (positions.length !== 1 ? 's' : '');
+
+    document.getElementById('posCount').textContent     = positions.length + ' open position' + (positions.length !== 1 ? 's' : '');
     document.getElementById('positionsAge').textContent = 'at ' + now();
 
     const container = document.getElementById('positionsTable');
@@ -886,14 +1046,14 @@ async function loadPositions() {
             <tr>
               <td>#${p.ticket}</td>
               <td>${p.symbol}</td>
-              <td><span class="badge ${p.type===0?'badge-buy':'badge-sell'}">${p.type===0?'BUY':'SELL'}</span></td>
+              <td><span class="badge ${p.type === 0 ? 'badge-buy' : 'badge-sell'}">${p.type === 0 ? 'BUY' : 'SELL'}</span></td>
               <td>${p.volume}</td>
               <td>${fmtPrice(p.price_open)}</td>
               <td>${fmtPrice(p.price_current)}</td>
               <td>${fmtPrice(p.sl)}</td>
               <td>${fmtPrice(p.tp)}</td>
-              <td class="${(p.profit||0)>=0?'positive':'negative'}">
-                ${(p.profit||0)>=0?'+':''}${Number(p.profit||0).toFixed(2)}
+              <td class="${(p.profit || 0) >= 0 ? 'positive' : 'negative'}">
+                ${(p.profit || 0) >= 0 ? '+' : ''}${Number(p.profit || 0).toFixed(2)}
               </td>
             </tr>`).join('')}
         </tbody>
@@ -901,35 +1061,53 @@ async function loadPositions() {
   } catch(e) {}
 }
 
-//Dashboard Indicator
-async function updateBotStatus() {
-    try {
-        const [botRes, riskRes] = await Promise.all([
-            fetch(`${API}/api/bot/status`),
-            fetch(`${API}/api/risk/status`)
-        ]);
-        const bot  = await botRes.json();
-        const risk = await riskRes.json();
-        const el   = document.getElementById('autoBotStatus');
 
-        if (risk.kill_switch) {
-            el.className   = 'market-status market-closed';
-            el.textContent = '⛔ Bot Halted';
-        } else if (bot.will_trade) {
-            el.className   = 'market-status market-open';
-            el.textContent = '🤖 Bot Active';
-        } else if (bot.connected && bot.mock_mode) {
-            el.className   = 'market-status market-pre';
-            el.textContent = '⏸ Bot Off (Demo)';
-        } else {
-            el.className   = 'market-status market-closed';
-            el.textContent = '⏸ Bot Off';
-        }
-    } catch(e) {}
+// ── Bot status badge ──────────────────────────────────────────────────────────
+
+/**
+ * updateBotStatus — polls /api/bot/status and /api/risk/status in parallel
+ * and updates the bot badge in the top bar.
+ *
+ * Priority order:
+ *   1. Kill switch on  → ⛔ Bot Halted (red)
+ *   2. will_trade true → 🤖 Bot Active (green)
+ *   3. Demo mode       → ⏸ Bot Off (Demo) (amber)
+ *   4. Default         → ⏸ Bot Off (dark)
+ */
+async function updateBotStatus() {
+  try {
+    const [botRes, riskRes] = await Promise.all([
+      fetch(`${API}/api/bot/status`),
+      fetch(`${API}/api/risk/status`),
+    ]);
+    const bot  = await botRes.json();
+    const risk = await riskRes.json();
+    const el   = document.getElementById('autoBotStatus');
+
+    if (risk.kill_switch) {
+      el.className   = 'market-status market-closed';
+      el.textContent = '⛔ Bot Halted';
+    } else if (bot.will_trade) {
+      el.className   = 'market-status market-open';
+      el.textContent = '🤖 Bot Active';
+    } else if (bot.connected && bot.mock_mode) {
+      el.className   = 'market-status market-pre';
+      el.textContent = '⏸ Bot Off (Demo)';
+    } else {
+      el.className   = 'market-status market-closed';
+      el.textContent = '⏸ Bot Off';
+    }
+  } catch(e) {}
 }
 
 
-// ── Symbol change ─────────────────────────────────────────────
+// ── Symbol change ─────────────────────────────────────────────────────────────
+
+/**
+ * onSymbolChange — triggered when the symbol dropdown changes or a watchlist
+ * symbol is clicked. Resets prevPrice so the first tick of the new symbol
+ * does not trigger an incorrect colour flash.
+ */
 function onSymbolChange() {
   prevPrice = null;
   loadPrice();
@@ -937,7 +1115,14 @@ function onSymbolChange() {
   loadChart(currentTf);
 }
 
-// ── Refresh all ───────────────────────────────────────────────
+
+// ── Refresh all ───────────────────────────────────────────────────────────────
+
+/**
+ * refreshAll — runs every fetch function once. Called on page load and
+ * when the user clicks the Refresh button so the dashboard is immediately
+ * populated rather than waiting for the first polling interval to fire.
+ */
 function refreshAll() {
   loadAccount();
   loadPrice();
@@ -950,14 +1135,19 @@ function refreshAll() {
   updateBotStatus();
 }
 
-// ── Init ──────────────────────────────────────────────────────
+
+// ── Start polling ─────────────────────────────────────────────────────────────
+// Initial load then recurring intervals. Each section is independent so a slow
+// response on one endpoint does not delay others.
+
 refreshAll();
-setInterval(loadPrice,         5000);
-setInterval(loadPositions, 3000);
-setInterval(loadWatchlist,    15000);
-setInterval(updateMarketStatus, 60000);
-setInterval(checkStatus,       8000);
-setInterval(updateBotStatus,    5000);
+
+setInterval(loadPrice,          5000);  //  5s — live price tile
+setInterval(loadPositions,      3000);  //  3s — positions + auto-trade notification
+setInterval(loadWatchlist,     15000);  // 15s — sidebar watchlist
+setInterval(updateMarketStatus, 60000); // 60s — market open/closed (very slow change)
+setInterval(checkStatus,        8000);  //  8s — connection badge
+setInterval(updateBotStatus,    5000);  //  5s — bot active/halted badge
 </script>
 </body>
 </html>
